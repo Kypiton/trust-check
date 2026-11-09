@@ -2,6 +2,7 @@ import type {
   CheckResult as CheckResultData,
   Confidence,
   RiskLevel,
+  AnalysisCheck,
 } from "@/entities/check/model/types";
 
 const riskStyles = {
@@ -14,6 +15,13 @@ const confidenceLabels: Record<Confidence, string> = {
   LOW: "Low confidence",
   MEDIUM: "Medium confidence",
   HIGH: "High confidence",
+};
+
+const coverageLabels: Record<AnalysisCheck["status"], string> = {
+  COMPLETED: "Completed",
+  UNAVAILABLE: "Unavailable",
+  SKIPPED: "Skipped",
+  NOT_APPLICABLE: "Not applicable",
 };
 
 function ResultIcon({ kind, className = "" }: { kind: "risk" | "safe" | "info"; className?: string }) {
@@ -36,6 +44,7 @@ const summaryClassName = "cursor-pointer rounded-xl px-5 py-4 text-sm font-mediu
 export function CheckResult({ result }: { result: CheckResultData }) {
   const style = riskStyles[result.riskLevel];
   const completed = result.analysisCoverage.filter((check) => check.status === "COMPLETED").length;
+  const attempted = result.analysisCoverage.filter((check) => check.status === "COMPLETED" || check.status === "UNAVAILABLE").length;
 
   return (
     <div className="space-y-6">
@@ -70,6 +79,9 @@ export function CheckResult({ result }: { result: CheckResultData }) {
       <div className="grid gap-6 md:grid-cols-2">
         <section aria-labelledby="signals-heading" className={cardClassName}>
           <h2 id="signals-heading" className="text-lg font-semibold">{result.riskLevel === "LOW" ? "What we found" : "Why this looks risky"}</h2>
+          {result.signals.length === 0 && (
+            <p className="mt-5 text-sm leading-6 text-muted">No matching risk signals were detected in the text.</p>
+          )}
           <ul className="mt-5 space-y-5">
             {result.signals.map((signal) => (
               <li key={signal.code} className="flex items-start gap-3">
@@ -99,14 +111,14 @@ export function CheckResult({ result }: { result: CheckResultData }) {
         <summary className={summaryClassName}>
           <span className="ml-1 inline-flex w-[calc(100%-1.5rem)] flex-col gap-1 align-top sm:flex-row sm:justify-between sm:gap-4">
             <span>Analysis coverage</span>
-            <span className="font-normal text-muted">{completed} of {result.analysisCoverage.length} checks completed</span>
+            <span className="font-normal text-muted">{completed} of {attempted} checks completed</span>
           </span>
         </summary>
         <dl className="space-y-3 border-t border-border px-5 py-4 md:px-6">
           {result.analysisCoverage.map((check) => (
             <div key={check.code} className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm">
               <dt>{check.title}</dt>
-              <dd className="text-muted">{check.status === "COMPLETED" ? "Completed" : "Unavailable"}</dd>
+              <dd className="text-muted">{coverageLabels[check.status]}</dd>
             </div>
           ))}
         </dl>

@@ -17,7 +17,7 @@ export type RecommendedAction = {
 export type AnalysisCheck = {
   code: string;
   title: string;
-  status: "COMPLETED" | "UNAVAILABLE";
+  status: "COMPLETED" | "UNAVAILABLE" | "SKIPPED" | "NOT_APPLICABLE";
 };
 
 export type CheckResult = {

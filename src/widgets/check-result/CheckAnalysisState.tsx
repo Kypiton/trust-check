@@ -32,7 +32,11 @@ export function PartialAnalysisNotice() {
   );
 }
 
-export function CheckAnalysisState({ analysis }: { analysis: CheckAnalysis }) {
+export function CheckAnalysisState({ analysis, onRetry, onNewCheck }: {
+  analysis: CheckAnalysis;
+  onRetry?: () => void;
+  onNewCheck?: () => void;
+}) {
   if (analysis.status === "COMPLETED" || analysis.status === "PARTIAL") {
     return (
       <div className="space-y-6">
@@ -87,8 +91,12 @@ export function CheckAnalysisState({ analysis }: { analysis: CheckAnalysis }) {
         </ul>
       )}
       <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-        {failed && <button type="button" className={primaryAction}>Try again</button>}
-        <Link href="/check" className={failed ? secondaryAction : primaryAction}>Start a new check</Link>
+        {failed && <button type="button" onClick={onRetry} className={primaryAction}>Try again</button>}
+        {onNewCheck ? (
+          <button type="button" onClick={onNewCheck} className={failed ? secondaryAction : primaryAction}>Start a new check</button>
+        ) : (
+          <Link href="/check" className={failed ? secondaryAction : primaryAction}>Start a new check</Link>
+        )}
       </div>
     </section>
   );
