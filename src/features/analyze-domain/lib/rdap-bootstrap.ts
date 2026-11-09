@@ -1,6 +1,8 @@
 import { isIP } from "node:net";
 import { parse } from "tldts";
 import { isRecord, requestRdapJson } from "./rdap-http";
+import { createRdapGuard, type RdapGuard } from "./rdap-guard";
+import { RDAP_FAILURE_COOLDOWN_MS, withDomainDeadline } from "./rdap-limits";
 
 export const IANA_BOOTSTRAP_URL = "https://data.iana.org/rdap/dns.json";
 export const BOOTSTRAP_TTL_MS = 24 * 60 * 60 * 1_000;
@@ -46,23 +48,30 @@ function parseBootstrap(data: unknown): ReadonlyMap<string, string> | null {
 }
 
 /** Each analyzer instance owns one cache, shared across every domain it checks. */
-export function createRdapBootstrap(fetcher: typeof fetch, now: () => number) {
+export function createRdapBootstrap(fetcher: typeof fetch, now: () => number, guard: RdapGuard = createRdapGuard(now)) {
   let cached: { services: ReadonlyMap<string, string>; expiresAt: number } | undefined;
   let pending: Promise<BootstrapResult> | undefined;
+  let retryAfter = 0;
 
   async function load(): Promise<BootstrapResult> {
     if (cached && now() < cached.expiresAt) return { ok: true, services: cached.services };
+    if (now() < retryAfter) return { ok: false, reason: "BOOTSTRAP_UNAVAILABLE" };
     if (pending) return pending;
-    pending = (async (): Promise<BootstrapResult> => {
-      const response = await requestRdapJson(new URL(IANA_BOOTSTRAP_URL), fetcher);
+    // Shared discovery owns its cancellation: one caller must not abort work
+    // used by another. It is bounded independently, including admission wait.
+    pending = withDomainDeadline<BootstrapResult>(async (deadline) => {
+      const url = new URL(IANA_BOOTSTRAP_URL);
+      const response = await guard.run(url, deadline, () => requestRdapJson(url, fetcher, deadline.signal));
       if (!response.ok) return { ok: false, reason: "BOOTSTRAP_UNAVAILABLE" };
       const services = parseBootstrap(response.data);
       if (!services) return { ok: false, reason: "BOOTSTRAP_UNAVAILABLE" };
       cached = { services, expiresAt: now() + BOOTSTRAP_TTL_MS };
       return { ok: true, services };
-    })();
+    }, { ok: false, reason: "BOOTSTRAP_UNAVAILABLE" }, now);
     try {
-      return await pending;
+      const result = await pending;
+      if (!result.ok) retryAfter = now() + RDAP_FAILURE_COOLDOWN_MS;
+      return result;
     } finally {
       pending = undefined;
     }

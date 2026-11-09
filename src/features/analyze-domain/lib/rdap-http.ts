@@ -7,9 +7,13 @@ export type RequestFailure =
   | "HTTP_ERROR"
   | "REDIRECT"
   | "INVALID_RESPONSE"
-  | "RESPONSE_TOO_LARGE";
+  | "RESPONSE_TOO_LARGE"
+  | "DEADLINE_EXCEEDED"
+  | "PROVIDER_COOLDOWN"
+  | "QUEUE_FULL";
 
-type JsonResult = { ok: true; data: unknown } | { ok: false; reason: RequestFailure };
+export type RdapFailure = { ok: false; reason: RequestFailure; httpStatus?: number };
+type JsonResult = { ok: true; data: unknown } | RdapFailure;
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -17,10 +21,19 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 // Internal transport: callers supply only the fixed IANA URL or a discovered
 // RDAP query. This is intentionally not exported from the feature's public API.
-export async function requestRdapJson(url: URL, fetcher: typeof fetch): Promise<JsonResult> {
+export async function requestRdapJson(url: URL, fetcher: typeof fetch, signal?: AbortSignal): Promise<JsonResult> {
+  if (signal?.aborted) return { ok: false, reason: "DEADLINE_EXCEEDED" };
   const controller = new AbortController();
+  let abortReason: RequestFailure = "TIMEOUT";
+  let onAbort: () => void;
   let timer: ReturnType<typeof setTimeout>;
   const deadline = new Promise<JsonResult>((resolve) => {
+    onAbort = () => {
+      abortReason = "DEADLINE_EXCEEDED";
+      controller.abort();
+      resolve({ ok: false, reason: abortReason });
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
     timer = setTimeout(() => {
       controller.abort();
       resolve({ ok: false, reason: "TIMEOUT" });
@@ -39,17 +52,17 @@ export async function requestRdapJson(url: URL, fetcher: typeof fetch): Promise<
         signal: controller.signal,
       });
     } catch {
-      return { ok: false, reason: controller.signal.aborted ? "TIMEOUT" : "NETWORK_ERROR" };
+      return { ok: false, reason: controller.signal.aborted ? abortReason : "NETWORK_ERROR" };
     }
 
-    const reject = (reason: RequestFailure): JsonResult => {
+    const reject = (reason: RequestFailure): RdapFailure => {
       void response.body?.cancel().catch(() => {});
       return { ok: false, reason };
     };
-    if (controller.signal.aborted) return reject("TIMEOUT");
+    if (controller.signal.aborted) return reject(abortReason);
     // Never follow Location or RDAP links, including same-origin redirects.
     if (response.redirected || (response.status >= 300 && response.status < 400)) return reject("REDIRECT");
-    if (!response.ok) return reject("HTTP_ERROR");
+    if (!response.ok) return { ...reject("HTTP_ERROR"), httpStatus: response.status };
     const mediaType = response.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
     if (mediaType !== "application/json" && mediaType !== "application/rdap+json") return reject("INVALID_RESPONSE");
     const length = response.headers.get("content-length");
@@ -65,7 +78,7 @@ export async function requestRdapJson(url: URL, fetcher: typeof fetch): Promise<
       let text = "";
       while (true) {
         const { done, value } = await reader.read();
-        if (controller.signal.aborted) return { ok: false, reason: "TIMEOUT" };
+        if (controller.signal.aborted) return { ok: false, reason: abortReason };
         if (done) break;
         bytes += value.byteLength;
         if (bytes > MAX_JSON_BYTES) return { ok: false, reason: "RESPONSE_TOO_LARGE" };
@@ -78,7 +91,7 @@ export async function requestRdapJson(url: URL, fetcher: typeof fetch): Promise<
         return { ok: false, reason: "INVALID_RESPONSE" };
       }
     } catch {
-      return { ok: false, reason: controller.signal.aborted ? "TIMEOUT" : "INVALID_RESPONSE" };
+      return { ok: false, reason: controller.signal.aborted ? abortReason : "INVALID_RESPONSE" };
     } finally {
       controller.signal.removeEventListener("abort", cancel);
       cancel();
@@ -92,6 +105,7 @@ export async function requestRdapJson(url: URL, fetcher: typeof fetch): Promise<
     return await Promise.race([read(), deadline]);
   } finally {
     clearTimeout(timer!);
+    signal?.removeEventListener("abort", onAbort!);
     controller.abort();
   }
 }

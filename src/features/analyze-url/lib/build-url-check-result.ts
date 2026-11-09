@@ -3,6 +3,7 @@ import type { CheckAnalysis, CheckResult, RecommendedAction } from "../../../ent
 import { calculateRisk, type DetectedSignal, type RiskCalculation, type RiskLevel, type SignalCode } from "../../../entities/risk";
 import { analyzeDomain, type DomainAnalysis } from "../../analyze-domain";
 import { inspectUrl } from "./analyze-url";
+import { MAX_URL_INPUT_LENGTH } from "./limits";
 
 export type UrlCheckResponse =
   | { ok: false; error: string }
@@ -84,7 +85,9 @@ export async function buildUrlCheckResult(
   { analyzeDomain: domainAnalyzer = analyzeDomain }: { analyzeDomain?: typeof analyzeDomain } = {},
 ): Promise<UrlCheckResponse> {
   const invalid: UrlCheckResponse = { ok: false, error: "Enter a valid HTTP or HTTPS link." };
-  if (typeof value !== "string" || !value.trim()) return invalid;
+  if (typeof value !== "string") return invalid;
+  if (value.length > MAX_URL_INPUT_LENGTH) return { ok: false, error: `Keep your link to ${MAX_URL_INPUT_LENGTH} characters or fewer.` };
+  if (!value.trim()) return invalid;
   const analysis = inspectUrl(value.trim());
   if (!analysis.valid) return invalid;
   // The domain feature owns applicability and registrable-domain resolution.

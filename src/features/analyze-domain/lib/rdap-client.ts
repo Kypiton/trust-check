@@ -1,8 +1,8 @@
-import { isRecord, requestRdapJson, type RequestFailure } from "./rdap-http";
+import { isRecord, requestRdapJson, type RdapFailure } from "./rdap-http";
 
 type RegistrationResult =
   | { ok: true; registrationDate: string | null }
-  | { ok: false; reason: RequestFailure };
+  | RdapFailure;
 
 function registrationTimestamp(value: unknown, now: number): number | null {
   if (typeof value !== "string") return null;
@@ -25,9 +25,10 @@ export async function lookupRegistration(
   registrableDomain: string,
   fetcher: typeof fetch,
   now: number,
+  signal?: AbortSignal,
 ): Promise<RegistrationResult> {
   const query = new URL(`domain/${encodeURIComponent(registrableDomain)}`, baseUrl);
-  const response = await requestRdapJson(query, fetcher);
+  const response = await requestRdapJson(query, fetcher, signal);
   if (!response.ok) return response;
   const data = response.data;
   if (!isRecord(data) || data.objectClassName !== "domain" ||

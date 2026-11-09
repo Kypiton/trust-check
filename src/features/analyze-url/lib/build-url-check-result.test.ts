@@ -10,6 +10,7 @@ import { analyzeUrlAction } from "../actions/analyze-url-action";
 import { analyzeTextAction } from "../../analyze-text/actions/analyze-text-action";
 import * as analyzer from "./analyze-url";
 import { buildUrlCheckResult, buildUrlRecommendations, mapUrlCheckResult } from "./build-url-check-result";
+import { MAX_URL_INPUT_LENGTH } from "./limits";
 
 async function resultFor(input: string) {
   const response = await buildUrlCheckResult(input);
@@ -129,6 +130,25 @@ describe("URL result mapping", () => {
 });
 
 describe("URL Server Action validation and privacy", () => {
+  it.each([
+    `https://example.com/${"x".repeat(MAX_URL_INPUT_LENGTH)}`,
+    `${" ".repeat(MAX_URL_INPUT_LENGTH)}https://example.com`,
+  ])("rejects oversized raw input before parsing or enrichment (case %#)", async (input) => {
+    const inspect = vi.spyOn(analyzer, "inspectUrl");
+    const response = await analyzeUrlAction(input);
+    expect(response).toEqual({ ok: false, error: `Keep your link to ${MAX_URL_INPUT_LENGTH} characters or fewer.` });
+    expect(inspect).not.toHaveBeenCalled();
+    expect(domainFeature.analyzeDomain).not.toHaveBeenCalled();
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
+  it("accepts a valid URL at exactly the length limit", async () => {
+    const prefix = "https://example.com/";
+    const input = prefix + "x".repeat(MAX_URL_INPUT_LENGTH - prefix.length);
+    expect(await analyzeUrlAction(input)).toMatchObject({ ok: true, analysis: { status: "COMPLETED" } });
+    expect(domainFeature.analyzeDomain).toHaveBeenCalledExactlyOnceWith("example.com");
+  });
+
   it.each([undefined, null, 7, {}, [], "", " \t\n "])("rejects empty/non-string input before invoking the analyzer (case %#)", async (input) => {
     const analyze = vi.spyOn(analyzer, "inspectUrl");
     expect(await analyzeUrlAction(input)).toEqual({ ok: false, error: "Enter a valid HTTP or HTTPS link." });

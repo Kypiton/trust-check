@@ -3,6 +3,7 @@ import { calculateRisk } from "../../../entities/risk";
 import { createDomainAnalyzer, NEW_DOMAIN_THRESHOLD_DAYS } from "../index";
 import { BOOTSTRAP_TTL_MS, IANA_BOOTSTRAP_URL } from "./rdap-bootstrap";
 import { MAX_JSON_BYTES, RDAP_TIMEOUT_MS } from "./rdap-http";
+import { RDAP_FAILURE_COOLDOWN_MS } from "./rdap-limits";
 
 const DAY_MS = 86_400_000;
 const NOW = Date.parse("2026-11-09T12:00:00Z");
@@ -189,6 +190,9 @@ describe("bootstrap caching", () => {
     fetcher.mockRejectedValueOnce(new TypeError("fetch failed"));
     expect(await analyze("example.com")).toEqual({ status: "UNAVAILABLE", reason: "BOOTSTRAP_UNAVAILABLE" });
     expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(await analyze("example.com")).toEqual({ status: "UNAVAILABLE", reason: "BOOTSTRAP_UNAVAILABLE" });
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    now.mockReturnValue(NOW + BOOTSTRAP_TTL_MS + RDAP_FAILURE_COOLDOWN_MS);
     expect(await analyze("example.com")).toMatchObject({ status: "COMPLETED" });
     expect(fetcher).toHaveBeenCalledTimes(5);
   });
@@ -201,10 +205,13 @@ describe("bootstrap caching", () => {
     },
   );
 
-  it("returns unavailable on an IANA failure and retries next time", async () => {
-    const { analyze, fetcher } = setup();
+  it("returns unavailable on an IANA failure and retries only after cooldown", async () => {
+    const { analyze, fetcher, now } = setup();
     fetcher.mockResolvedValueOnce(new Response(null, { status: 503 }));
     expect(await analyze("example.com")).toEqual({ status: "UNAVAILABLE", reason: "BOOTSTRAP_UNAVAILABLE" });
+    expect(await analyze("example.org")).toEqual({ status: "UNAVAILABLE", reason: "BOOTSTRAP_UNAVAILABLE" });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    now.mockReturnValue(NOW + RDAP_FAILURE_COOLDOWN_MS);
     expect(await analyze("example.com")).toMatchObject({ status: "COMPLETED" });
     expect(fetcher).toHaveBeenCalledTimes(3);
   });
