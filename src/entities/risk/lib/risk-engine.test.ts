@@ -30,6 +30,22 @@ const weights: [SignalCode, number][] = [
 ];
 
 describe("calculateRisk", () => {
+  it.each(["UNKNOWN", "", "constructor", "toString", "__proto__", null, undefined, 42, {}, ["OTP_REQUEST"]])(
+    "rejects an unsupported runtime signal code without returning a score (case %#)", (code) => {
+      const malformed = { code, category: "URL", title: "Private title", description: "Private description" };
+      const input = [signal("OTP_REQUEST"), malformed] as unknown as DetectedSignal[];
+      expect(() => calculateRisk(input)).toThrow(new TypeError("Invalid risk evidence."));
+    },
+  );
+
+  it.each([null, undefined, "OTP_REQUEST", 5, {}])("rejects malformed signal records (case %#)", (record) => {
+    expect(() => calculateRisk([record] as unknown as DetectedSignal[])).toThrow("Invalid risk evidence.");
+  });
+
+  it.each([null, undefined, {}, "OTP_REQUEST"])("rejects non-array evidence (case %#)", (input) => {
+    expect(() => calculateRisk(input as unknown as DetectedSignal[])).toThrow("Invalid risk evidence.");
+  });
+
   it("returns the mathematical zero result for empty input", () => {
     expect(calculateRisk([])).toEqual({ score: 0, level: "LOW", scoredSignals: [] });
   });

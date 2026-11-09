@@ -4,6 +4,7 @@ import { calculateRisk } from "../../../entities/risk";
 import { analyzeTextAction } from "../actions/analyze-text-action";
 import * as analyzer from "./analyze-text";
 import * as builder from "./build-text-check-result";
+import * as detectors from "./detectors";
 
 const phishing = "URGENT! Your bank account will be suspended. Send us the verification code you receive.";
 const normal = "Hi, are we still meeting tomorrow at 6?";
@@ -17,6 +18,31 @@ function completed(text: string) {
 }
 
 describe("text check orchestration", () => {
+  it.each([
+    "Терміново надішліть нам ваш пароль та код підтвердження.",
+    "Надішліть ваш OTP негайно, інакше рахунок буде заблоковано.",
+    "立即发送您的密码和验证码，否则账户将被封锁。",
+  ])("does not score clearly unsupported text: %s", async (text) => {
+    const analyze = vi.spyOn(analyzer, "analyzeText");
+    const response = await analyzeTextAction(text);
+    expect(response).toEqual({ ok: true, analysis: { status: "INSUFFICIENT_DATA", reason: "UNSUPPORTED_LANGUAGE" } });
+    expect(analyze).not.toHaveBeenCalled();
+    expect(response).not.toHaveProperty("analysis.result");
+  });
+
+  it.each([phishing, normal, "Hi 李, are we still meeting tomorrow at the café?"])("keeps English-compatible text working and discloses the scope: %s", (text) => {
+    expect(completed(text).analysisNote).toBe("Text analysis currently supports English only.");
+  });
+
+  it("rejects unsupported runtime detector evidence through the safe action boundary", async () => {
+    vi.spyOn(detectors, "detectTextSignals").mockReturnValue([
+      { code: "PRIVATE_UNKNOWN_SIGNAL", category: "TEXT", title: "Private", description: "Private" },
+    ] as unknown as ReturnType<typeof detectors.detectTextSignals>);
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await analyzeTextAction(normal)).toEqual({ ok: true, analysis: { status: "FAILED" } });
+    expect(error).toHaveBeenCalledExactlyOnceWith("[TrustCheck] TEXT_ANALYSIS_FAILED");
+  });
+
   it("uses real detection and Risk Engine scoring for phishing", () => {
     const result = completed(phishing);
     const analysis = analyzer.analyzeText(phishing);

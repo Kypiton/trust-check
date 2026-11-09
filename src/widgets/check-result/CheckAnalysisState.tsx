@@ -74,16 +74,17 @@ export function CheckAnalysisState({ analysis, onRetry, onNewCheck }: {
   }
 
   const failed = analysis.status === "FAILED";
+  const unsupportedLanguage = analysis.status === "INSUFFICIENT_DATA" && analysis.reason === "UNSUPPORTED_LANGUAGE";
   return (
     <section aria-labelledby="outcome-heading" className="rounded-xl border border-border bg-surface p-5 md:p-8">
       <div className="flex items-center gap-3">
         <InfoIcon className={failed ? "text-danger" : "text-muted"} />
-        <h1 id="outcome-heading" className="text-2xl font-semibold tracking-tight">{failed ? "Analysis failed" : "Not enough information"}</h1>
+        <h1 id="outcome-heading" className="text-2xl font-semibold tracking-tight">{failed ? "Analysis failed" : unsupportedLanguage ? "English text required" : "Not enough information"}</h1>
       </div>
       <p className="mt-3 text-base leading-7 text-muted">
-        {failed ? "Something went wrong while checking this content." : "We need more information to assess this content."}
+        {failed ? "Something went wrong while checking this content." : unsupportedLanguage ? "Text analysis currently supports English only. We could not assess this message. Please provide the message in English." : "We need more information to assess this content."}
       </p>
-      {!failed && (
+      {!failed && !unsupportedLanguage && (
         <ul className="mt-5 list-disc space-y-2 pl-5 text-sm leading-6 text-muted">
           <li>Paste the full message</li>
           <li>Provide a complete URL</li>

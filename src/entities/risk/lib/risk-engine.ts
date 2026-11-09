@@ -28,21 +28,32 @@ const SIGNAL_WEIGHTS = Object.freeze({
   KNOWN_PHISHING_DOMAIN: 50,
 } satisfies Record<SignalCode, number>);
 
+function isSignalCode(code: unknown): code is SignalCode {
+  return typeof code === "string" && Object.hasOwn(SIGNAL_WEIGHTS, code);
+}
+
 /** Scores validated detector signals; coverage and confidence belong to the pipeline. */
 export function calculateRisk(signals: readonly DetectedSignal[]): RiskCalculation {
+  // Types protect callers at compile time; adapters can still supply malformed
+  // runtime data. Reject the entire calculation rather than inventing LOW risk.
+  if (!Array.isArray(signals)) throw new TypeError("Invalid risk evidence.");
   const seen = new Set<SignalCode>();
   const scoredSignals: ScoredSignal[] = [];
   let total = 0;
 
   for (const signal of signals) {
-    if (seen.has(signal.code)) continue;
-    seen.add(signal.code);
+    const code: unknown = signal !== null && typeof signal === "object" ? signal.code : undefined;
+    if (!isSignalCode(code)) {
+      throw new TypeError("Invalid risk evidence.");
+    }
+    if (seen.has(code)) continue;
+    seen.add(code);
 
-    const weight = SIGNAL_WEIGHTS[signal.code];
+    const weight = SIGNAL_WEIGHTS[code];
     total += weight;
     // Keep the first explanation, copy it, and always attach the canonical weight.
     scoredSignals.push({
-      code: signal.code,
+      code,
       title: signal.title,
       description: signal.description,
       category: signal.category,

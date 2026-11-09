@@ -5,7 +5,6 @@ import type { CheckAnalysis } from "@/entities/check/model/types";
 import { analyzeTextAction } from "@/features/analyze-text/actions/analyze-text-action";
 import { analyzeUrlAction } from "@/features/analyze-url/actions/analyze-url-action";
 import { CheckAnalysisState } from "@/widgets/check-result";
-import { ScreenshotInput } from "./ScreenshotInput";
 
 const modes = [
   { value: "TEXT", label: "Text", path: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6ZM14 2v6h6M8 13h8M8 17h5" },
@@ -20,7 +19,6 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
   const [mode, setMode] = useState<Mode>("TEXT");
   const [text, setText] = useState("");
   const [url, setUrl] = useState("");
-  const [file, setFile] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<CheckAnalysis | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -43,7 +41,6 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
   function newCheck() {
     setText("");
     setUrl("");
-    setFile(null);
     setMode("TEXT");
     setError("");
     focusForm.current = true;
@@ -84,7 +81,7 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
     if (mode !== "SCREENSHOT") void runCheck();
   }
 
-  const disabled = mode === "TEXT" ? !text.trim() : mode === "URL" ? !url.trim() : !file;
+  const disabled = mode === "TEXT" ? !text.trim() : mode === "URL" ? !url.trim() : true;
   const inputClass = "w-full rounded-lg border border-border bg-surface px-4 py-3 text-base text-foreground placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
   if (pending) {
@@ -130,6 +127,7 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
         {mode === "TEXT" && (
           <div>
             <label htmlFor={`${id}-text`} className="sr-only">Suspicious message</label>
+            <p id={`${id}-language`} className="mb-2 text-sm text-muted">Text analysis currently supports English only.</p>
             <textarea
               ref={textareaRef}
               id={`${id}-text`}
@@ -138,7 +136,7 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
               maxLength={10000}
               placeholder="Paste the suspicious message here..."
               aria-invalid={!!error}
-              aria-describedby={`${id}-count${error ? ` ${id}-error` : ""}`}
+              aria-describedby={`${id}-language ${id}-count${error ? ` ${id}-error` : ""}`}
               className={`${inputClass} block min-h-[170px] resize-y md:min-h-[180px]`}
             />
             <p id={`${id}-count`} className="mt-2 text-right text-xs tabular-nums text-muted">{text.length.toLocaleString("en-US")} / 10,000</p>
@@ -168,7 +166,11 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
           </div>
         )}
 
-        {mode === "SCREENSHOT" && <ScreenshotInput file={file} onChange={setFile} />}
+        {mode === "SCREENSHOT" && (
+          <p role="status" className="rounded-xl border border-border bg-surface p-5 text-sm text-muted">
+            Screenshot analysis is coming soon. For now, paste an English message in Text mode or a link in Link mode.
+          </p>
+        )}
 
         <p className="flex items-start justify-center gap-2 text-sm text-muted">
           <svg aria-hidden="true" className="mt-0.5 size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></svg>

@@ -48,8 +48,8 @@ export const mockCheckResult: CheckResult = {
 };
 
 // Temporary preview selection only; no IDs are generated and no data is fetched.
-// Unknown IDs retain the original high-risk preview.
-export function getMockAnalysis(id: string): import("./types").CheckAnalysis {
+// Only explicit preview IDs are supported; unknown IDs have no assessment.
+export function getMockAnalysis(id: string): import("./types").CheckAnalysis | null {
   const completedCoverage = mockCheckResult.analysisCoverage.map((check) => ({
     ...check,
     status: "COMPLETED" as const,
@@ -111,10 +111,12 @@ export function getMockAnalysis(id: string): import("./types").CheckAnalysis {
           analysisCoverage: basicCoverage,
         },
       };
-    default:
+    case "high":
       return {
         status: "COMPLETED",
         result: { ...mockCheckResult, analysisCoverage: completedCoverage, confidence: calculateConfidence({ sources: completedCoverage, signals: [] }).level },
       };
+    default:
+      return null;
   }
 }

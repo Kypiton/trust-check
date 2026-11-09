@@ -54,6 +54,7 @@ export function mapTextCheckResult(analysis: TextAnalysis): CheckResult {
     riskScore: analysis.risk.score,
     confidence: confidence.level,
     summary: summaries[analysis.risk.level],
+    analysisNote: "Text analysis currently supports English only.",
     signals: analysis.signals.map(({ code, title, description }) => ({ code, title, description })),
     recommendedActions: buildTextRecommendations(analysis.signals),
     analysisCoverage,
@@ -67,6 +68,15 @@ export function buildTextCheckResult(value: unknown): TextCheckResponse {
   if (!text) return { ok: false, error: "Enter a message to check." };
   // Bound the raw payload as well as the trimmed content, matching the textarea limit.
   if (value.length > 10000) return { ok: false, error: "Keep your message to 10,000 characters or fewer." };
+
+  // A script safeguard, not language identification: other Latin-script
+  // languages cannot be distinguished from English here. Permit small amounts
+  // of non-Latin text (e.g. a name), but require at least 80% Latin letters.
+  const letters = text.match(/\p{L}/gu) ?? [];
+  const latinLetters = letters.filter((letter) => /\p{Script=Latin}/u.test(letter)).length;
+  if (letters.length > 0 && latinLetters / letters.length < 0.8) {
+    return { ok: true, analysis: { status: "INSUFFICIENT_DATA", reason: "UNSUPPORTED_LANGUAGE" } };
+  }
 
   const analysis = analyzeText(text);
   // Conservative, explicit sufficiency rule: no detected evidence AND a tiny

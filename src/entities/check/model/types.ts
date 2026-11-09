@@ -35,4 +35,5 @@ export type AnalysisStep = {
 export type CheckAnalysis =
   | { status: "COMPLETED" | "PARTIAL"; result: CheckResult }
   | { status: "ANALYZING"; steps: AnalysisStep[] }
-  | { status: "FAILED" | "INSUFFICIENT_DATA" };
+  | { status: "FAILED" }
+  | { status: "INSUFFICIENT_DATA"; reason?: "UNSUPPORTED_LANGUAGE" };
