@@ -1,4 +1,6 @@
-export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
+import type { RiskLevel } from "../../risk";
+
+export type { RiskLevel } from "../../risk";
 export type Confidence = "LOW" | "MEDIUM" | "HIGH";
 
 export type Signal = {
