@@ -56,12 +56,20 @@ export function CheckResult({ result }: { result: CheckResultData }) {
             <p className="mt-1 text-sm font-medium">Risk score</p>
           </div>
         </div>
-        <p className="p-5 text-base leading-7 text-foreground md:p-6">{result.summary}</p>
+        <div className="p-5 md:p-6">
+          <p className="text-base leading-7 text-foreground">{result.summary}</p>
+          {result.riskLevel === "LOW" && (
+            <p className="mt-2 text-sm leading-6 text-muted">This does not guarantee that the content is safe.</p>
+          )}
+          {result.riskLevel === "MEDIUM" && (
+            <p className="mt-2 text-sm leading-6 text-muted">Verify the information and be cautious before taking action.</p>
+          )}
+        </div>
       </section>
 
       <div className="grid gap-6 md:grid-cols-2">
         <section aria-labelledby="signals-heading" className={cardClassName}>
-          <h2 id="signals-heading" className="text-lg font-semibold">Why this looks risky</h2>
+          <h2 id="signals-heading" className="text-lg font-semibold">{result.riskLevel === "LOW" ? "What we found" : "Why this looks risky"}</h2>
           <ul className="mt-5 space-y-5">
             {result.signals.map((signal) => (
               <li key={signal.code} className="flex items-start gap-3">

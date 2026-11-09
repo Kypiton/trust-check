@@ -37,3 +37,75 @@ export const mockCheckResult: CheckResult = {
     { code: "AI_CONTEXT", title: "AI context analysis", status: "COMPLETED" },
   ],
 };
+
+// Temporary preview selection only; no IDs are generated and no data is fetched.
+// Unknown IDs retain the original high-risk preview.
+export function getMockAnalysis(id: string): import("./types").CheckAnalysis {
+  const completedCoverage = mockCheckResult.analysisCoverage.map((check) => ({
+    ...check,
+    status: "COMPLETED" as const,
+  }));
+
+  switch (id) {
+    case "loading":
+      return {
+        status: "ANALYZING",
+        steps: [
+          { code: "READ", title: "Reading message", status: "COMPLETED" },
+          { code: "LINKS", title: "Detecting links", status: "COMPLETED" },
+          { code: "DOMAIN", title: "Checking domain", status: "CURRENT" },
+          { code: "REPUTATION", title: "Checking reputation", status: "PENDING" },
+          { code: "RISK", title: "Evaluating risk", status: "PENDING" },
+        ],
+      };
+    case "error":
+      return { status: "FAILED" };
+    case "insufficient":
+      return { status: "INSUFFICIENT_DATA" };
+    case "partial":
+      return { status: "PARTIAL", result: mockCheckResult };
+    case "low":
+      return {
+        status: "COMPLETED",
+        result: {
+          riskLevel: "LOW",
+          riskScore: 18,
+          confidence: "MEDIUM",
+          summary: "No strong signs of fraud were detected.",
+          signals: [
+            { code: "NO_SENSITIVE_REQUEST", title: "No request for sensitive information", description: "The message does not ask for passwords, verification codes or payment details." },
+            { code: "NO_URGENCY", title: "No pressure to act immediately", description: "The message does not use urgent deadlines or threats." },
+          ],
+          recommendedActions: [
+            { code: "VERIFY_SENDER", title: "Verify the sender before sharing personal information" },
+            { code: "USE_OFFICIAL_CHANNELS", title: "Use the organization’s official website if you are unsure" },
+          ],
+          analysisCoverage: completedCoverage,
+        },
+      };
+    case "medium":
+      return {
+        status: "COMPLETED",
+        result: {
+          riskLevel: "MEDIUM",
+          riskScore: 46,
+          confidence: "MEDIUM",
+          summary: "Some suspicious signs were detected.",
+          signals: [
+            { code: "UNEXPECTED_REQUEST", title: "Unexpected request to take action", description: "The message asks you to follow a link without clearly explaining why." },
+            { code: "UNCLEAR_SENDER", title: "Sender identity is unclear", description: "The message does not provide enough context to confirm who sent it." },
+          ],
+          recommendedActions: [
+            { code: "VERIFY_REQUEST", title: "Confirm the request through an official contact channel" },
+            { code: "PAUSE", title: "Avoid sharing sensitive information until you have verified the sender" },
+          ],
+          analysisCoverage: completedCoverage,
+        },
+      };
+    default:
+      return {
+        status: "COMPLETED",
+        result: { ...mockCheckResult, analysisCoverage: completedCoverage },
+      };
+  }
+}

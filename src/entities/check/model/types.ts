@@ -27,3 +27,14 @@ export type CheckResult = {
   recommendedActions: RecommendedAction[];
   analysisCoverage: AnalysisCheck[];
 };
+
+export type AnalysisStep = {
+  code: string;
+  title: string;
+  status: "COMPLETED" | "CURRENT" | "PENDING";
+};
+
+export type CheckAnalysis =
+  | { status: "COMPLETED" | "PARTIAL"; result: CheckResult }
+  | { status: "ANALYZING"; steps: AnalysisStep[] }
+  | { status: "FAILED" | "INSUFFICIENT_DATA" };
