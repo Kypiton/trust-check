@@ -2,15 +2,18 @@ import { isIP } from "node:net";
 import { calculateRisk, type DetectedSignal, type RiskCalculation } from "../../../entities/risk";
 import { detectUrlSignals } from "./detectors";
 
-export type UrlAnalysis =
+export type UrlInspection =
   | {
       valid: true;
       normalizedUrl: string;
       hostname: string;
       signals: DetectedSignal[];
-      risk: RiskCalculation;
     }
   | { valid: false; error: "INVALID_URL" };
+
+export type UrlAnalysis =
+  | (Extract<UrlInspection, { valid: true }> & { risk: RiskCalculation })
+  | Extract<UrlInspection, { valid: false }>;
 
 function parseUrl(rawUrl: unknown): URL | null {
   if (typeof rawUrl !== "string") return null;
@@ -54,8 +57,8 @@ function parseUrl(rawUrl: unknown): URL | null {
   return url;
 }
 
-/** Parsing only: no fetching, DNS, redirects, reputation checks or URL execution. */
-export function analyzeUrl(rawUrl: unknown): UrlAnalysis {
+/** Unscored local evidence for pipelines that combine several detectors. */
+export function inspectUrl(rawUrl: unknown): UrlInspection {
   const url = parseUrl(rawUrl);
   if (!url) return { valid: false, error: "INVALID_URL" };
 
@@ -64,5 +67,11 @@ export function analyzeUrl(rawUrl: unknown): UrlAnalysis {
   // the separate analysis hostname ignores only case and a single trailing dot.
   const hostname = url.hostname.toLowerCase().replace(/\.$/, "");
   const signals = detectUrlSignals({ protocol: url.protocol, normalizedUrl, hostname });
-  return { valid: true, normalizedUrl, hostname, signals, risk: calculateRisk(signals) };
+  return { valid: true, normalizedUrl, hostname, signals };
+}
+
+/** Standalone local analysis; no fetching, DNS, redirects or URL execution. */
+export function analyzeUrl(rawUrl: unknown): UrlAnalysis {
+  const inspection = inspectUrl(rawUrl);
+  return inspection.valid ? { ...inspection, risk: calculateRisk(inspection.signals) } : inspection;
 }
