@@ -25,6 +25,7 @@ export type CheckResult = {
   riskScore: number;
   confidence: Confidence;
   summary: string;
+  analysisNote?: string;
   signals: Signal[];
   recommendedActions: RecommendedAction[];
   analysisCoverage: AnalysisCheck[];

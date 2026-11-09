@@ -67,6 +67,9 @@ export function CheckResult({ result }: { result: CheckResultData }) {
         </div>
         <div className="p-5 md:p-6">
           <p className="text-base leading-7 text-foreground">{result.summary}</p>
+          {result.analysisNote && (
+            <p className="mt-2 text-sm leading-6 text-muted">{result.analysisNote}</p>
+          )}
           {result.riskLevel === "LOW" && (
             <p className="mt-2 text-sm leading-6 text-muted">This does not guarantee that the content is safe.</p>
           )}
@@ -80,7 +83,7 @@ export function CheckResult({ result }: { result: CheckResultData }) {
         <section aria-labelledby="signals-heading" className={cardClassName}>
           <h2 id="signals-heading" className="text-lg font-semibold">{result.riskLevel === "LOW" ? "What we found" : "Why this looks risky"}</h2>
           {result.signals.length === 0 && (
-            <p className="mt-5 text-sm leading-6 text-muted">No matching risk signals were detected in the text.</p>
+            <p className="mt-5 text-sm leading-6 text-muted">No matching risk signals were detected.</p>
           )}
           <ul className="mt-5 space-y-5">
             {result.signals.map((signal) => (

@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { CheckAnalysis } from "@/entities/check/model/types";
 import { analyzeTextAction } from "@/features/analyze-text/actions/analyze-text-action";
+import { analyzeUrlAction } from "@/features/analyze-url/actions/analyze-url-action";
 import { CheckAnalysisState } from "@/widgets/check-result";
 import { ScreenshotInput } from "./ScreenshotInput";
 
@@ -27,15 +28,17 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
   const focusForm = useRef(false);
   const resultRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const urlRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (pending) return;
     if (analysis) resultRef.current?.focus();
     else if (focusForm.current) {
-      textareaRef.current?.focus();
+      if (mode === "URL") urlRef.current?.focus();
+      else textareaRef.current?.focus();
       focusForm.current = false;
     }
-  }, [analysis, pending]);
+  }, [analysis, pending, mode]);
 
   function newCheck() {
     setText("");
@@ -47,20 +50,25 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
     setAnalysis(null);
   }
 
-  async function runTextCheck() {
-    if (inFlight.current) return;
+  async function runCheck() {
+    if (inFlight.current || mode === "SCREENSHOT") return;
     inFlight.current = true;
     setPending(true);
     setError("");
     try {
-      const response = await analyzeTextAction(text);
+      const response = mode === "URL"
+        ? await analyzeUrlAction(url)
+        : await analyzeTextAction(text);
       if (!response.ok) {
         setError(response.error);
         focusForm.current = true;
         setAnalysis(null);
       } else {
         setAnalysis(response.analysis);
-        if (response.analysis.status !== "FAILED") setText("");
+        if (response.analysis.status !== "FAILED") {
+          if (mode === "URL") setUrl("");
+          else setText("");
+        }
       }
     } catch {
       // Transport failures receive the same safe UI as server-side failures.
@@ -73,7 +81,7 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mode === "TEXT") void runTextCheck();
+    if (mode !== "SCREENSHOT") void runCheck();
   }
 
   const disabled = mode === "TEXT" ? !text.trim() : mode === "URL" ? !url.trim() : !file;
@@ -83,7 +91,7 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
     return (
       <div aria-busy="true">
         <CheckAnalysisState analysis={{ status: "ANALYZING", steps: [
-          { code: "TEXT", title: "Checking message", status: "CURRENT" },
+          { code: mode, title: mode === "URL" ? "Checking URL structure" : "Checking message", status: "CURRENT" },
         ] }} />
       </div>
     );
@@ -95,7 +103,7 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
         <button type="button" onClick={newCheck} className="mb-6 inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-medium text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
           <span aria-hidden="true">←</span> New check
         </button>
-        <CheckAnalysisState analysis={analysis} onRetry={() => void runTextCheck()} onNewCheck={newCheck} />
+        <CheckAnalysisState analysis={analysis} onRetry={() => void runCheck()} onNewCheck={newCheck} />
       </div>
     );
   }
@@ -110,7 +118,7 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
               key={item.value}
               type="button"
               aria-pressed={mode === item.value}
-              onClick={() => setMode(item.value)}
+              onClick={() => { setMode(item.value); setError(""); }}
               className={`flex min-h-11 min-w-0 items-center justify-center gap-1.5 rounded-md px-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${mode === item.value ? "bg-surface text-foreground" : "text-muted hover:bg-surface hover:text-foreground"}`}
             >
               <svg aria-hidden="true" className="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d={item.path} /></svg>
@@ -141,7 +149,22 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
         {mode === "URL" && (
           <div>
             <label htmlFor={`${id}-url`} className="sr-only">Suspicious link</label>
-            <input id={`${id}-url`} type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com" autoCapitalize="none" spellCheck={false} className={inputClass} />
+            <input
+              ref={urlRef}
+              id={`${id}-url`}
+              type="text"
+              inputMode="url"
+              value={url}
+              onChange={(event) => { setUrl(event.target.value); setError(""); }}
+              placeholder="https://example.com"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-invalid={!!error}
+              aria-describedby={error ? `${id}-url-error` : undefined}
+              className={inputClass}
+            />
+            {error && <p id={`${id}-url-error`} role="alert" className="mt-2 text-sm text-danger">{error}</p>}
           </div>
         )}
 
