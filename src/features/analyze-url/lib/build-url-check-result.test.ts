@@ -1,3 +1,4 @@
+import { calculateConfidence } from "../../../entities/confidence";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { calculateRisk } from "../../../entities/risk";
 import { analyzeUrlAction } from "../actions/analyze-url-action";
@@ -37,11 +38,21 @@ describe("URL result mapping", () => {
 
   it.each([
     ["https://example.com", "LOW"],
-    ["http://example.com", "MEDIUM"],
-    ["http://185.23.44.11/login", "HIGH"],
-  ])("uses temporary URL-local confidence for %s", (input, confidence) => {
-    expect(resultFor(input).confidence).toBe(confidence);
+    ["http://example.com", "LOW"],
+    ["http://185.23.44.11/login", "MEDIUM"],
+  ])("uses coverage-based confidence for %s", (input, confidence) => {
+    const result = resultFor(input);
+    const analyzed = analyzer.analyzeUrl(input);
+    if (!analyzed.valid) throw new Error("Expected valid fixture");
+    expect(result.confidence).toBe(confidence);
+    expect(result.confidence).toBe(calculateConfidence({ sources: result.analysisCoverage, signals: analyzed.signals }).level);
     expect(resultFor(input).analysisNote).toContain("not to verification of the website");
+  });
+
+  it("keeps several suspicious local patterns at MEDIUM confidence", () => {
+    const result = resultFor(`http://paypa1-login.example/${"a".repeat(220)}`);
+    expect(result).toMatchObject({ riskScore: 35, riskLevel: "MEDIUM", confidence: "MEDIUM" });
+    expect(result.analysisCoverage.filter((source) => source.status === "COMPLETED")).toHaveLength(1);
   });
 
   it("maps a MEDIUM summary from actual evidence", () => {
@@ -55,7 +66,7 @@ describe("URL result mapping", () => {
     // the mapping contract with a future upstream score, not invented weighting.
     analysis.risk = { ...analysis.risk, score: 77, level: "HIGH" };
     expect(mapUrlCheckResult(analysis)).toMatchObject({
-      riskScore: 77, riskLevel: "HIGH",
+      riskScore: 77, riskLevel: "HIGH", confidence: "LOW",
       summary: "This link contains several characteristics commonly associated with suspicious or deceptive URLs.",
     });
   });
@@ -88,10 +99,10 @@ describe("URL result mapping", () => {
 
   it("reports exactly one completed family and explicitly skips network checks", () => {
     expect(resultFor("https://example.com").analysisCoverage).toEqual([
-      { code: "URL", title: "URL structure analysis", status: "COMPLETED" },
-      { code: "DOMAIN_AGE", title: "Domain age", status: "SKIPPED" },
-      { code: "REDIRECT", title: "Redirect analysis", status: "SKIPPED" },
-      { code: "REPUTATION", title: "Threat reputation", status: "SKIPPED" },
+      { code: "URL_STRUCTURE", status: "COMPLETED" },
+      { code: "DOMAIN_METADATA", status: "SKIPPED" },
+      { code: "REDIRECT_ANALYSIS", status: "SKIPPED" },
+      { code: "THREAT_REPUTATION", status: "SKIPPED" },
     ]);
   });
 });

@@ -1,4 +1,5 @@
-import type { CheckAnalysis, CheckResult, Confidence, RecommendedAction } from "../../../entities/check/model/types";
+import { calculateConfidence, type AnalysisSource } from "../../../entities/confidence";
+import type { CheckAnalysis, CheckResult, RecommendedAction } from "../../../entities/check/model/types";
 import type { DetectedSignal, RiskLevel, SignalCode } from "../../../entities/risk";
 import { analyzeText, type TextAnalysis } from "./analyze-text";
 
@@ -43,28 +44,19 @@ export function buildTextRecommendations(signals: readonly DetectedSignal[]): Re
   return [...actions.values()];
 }
 
-// TEMPORARY TEXT-only rule requested for this first flow. Replace with a
-// coverage-based confidence engine later; this never affects risk scoring.
-function temporaryTextConfidence(signalCount: number): Confidence {
-  return signalCount === 0 ? "LOW" : signalCount === 1 ? "MEDIUM" : "HIGH";
-}
-
 export function mapTextCheckResult(analysis: TextAnalysis): CheckResult {
+  const analysisCoverage: AnalysisSource[] = [
+    { code: "TEXT_HEURISTICS", status: "COMPLETED" },
+  ];
+  const confidence = calculateConfidence({ sources: analysisCoverage, signals: analysis.signals });
   return {
     riskLevel: analysis.risk.level,
     riskScore: analysis.risk.score,
-    confidence: temporaryTextConfidence(analysis.signals.length),
+    confidence: confidence.level,
     summary: summaries[analysis.risk.level],
     signals: analysis.signals.map(({ code, title, description }) => ({ code, title, description })),
     recommendedActions: buildTextRecommendations(analysis.signals),
-    analysisCoverage: [
-      { code: "TEXT", title: "Text analysis", status: "COMPLETED" },
-      { code: "URL", title: "URL analysis", status: "SKIPPED" },
-      { code: "DOMAIN", title: "Domain analysis", status: "SKIPPED" },
-      { code: "REPUTATION", title: "Threat reputation", status: "SKIPPED" },
-      { code: "AI_CONTEXT", title: "AI context analysis", status: "SKIPPED" },
-      { code: "SCREENSHOT", title: "Screenshot analysis", status: "NOT_APPLICABLE" },
-    ],
+    analysisCoverage,
   };
 }
 

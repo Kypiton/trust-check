@@ -1,4 +1,5 @@
-import type { CheckAnalysis, CheckResult, Confidence, RecommendedAction } from "../../../entities/check/model/types";
+import { calculateConfidence, type AnalysisSource } from "../../../entities/confidence";
+import type { CheckAnalysis, CheckResult, RecommendedAction } from "../../../entities/check/model/types";
 import type { DetectedSignal, RiskLevel, SignalCode } from "../../../entities/risk";
 import { analyzeUrl, type UrlAnalysis } from "./analyze-url";
 
@@ -37,28 +38,23 @@ export function buildUrlRecommendations(signals: readonly DetectedSignal[]): Rec
   return [...actions.values()];
 }
 
-// TODO: Replace this temporary URL-local signal-count rule with coverage-based
-// confidence. Even HIGH does not verify the website, domain age or reputation.
-// Confidence never changes Risk Engine output.
-function temporaryUrlConfidence(signalCount: number): Confidence {
-  return signalCount === 0 ? "LOW" : signalCount === 1 ? "MEDIUM" : "HIGH";
-}
-
 export function mapUrlCheckResult(analysis: ValidUrlAnalysis): CheckResult {
+  const analysisCoverage: AnalysisSource[] = [
+    { code: "URL_STRUCTURE", status: "COMPLETED" },
+    { code: "DOMAIN_METADATA", status: "SKIPPED" },
+    { code: "REDIRECT_ANALYSIS", status: "SKIPPED" },
+    { code: "THREAT_REPUTATION", status: "SKIPPED" },
+  ];
+  const confidence = calculateConfidence({ sources: analysisCoverage, signals: analysis.signals });
   return {
     riskLevel: analysis.risk.level,
     riskScore: analysis.risk.score,
-    confidence: temporaryUrlConfidence(analysis.signals.length),
+    confidence: confidence.level,
     summary: summaries[analysis.risk.level],
     analysisNote: "Only the URL's structure was analyzed. Confidence applies to these patterns, not to verification of the website. Domain age, redirects and threat reputation were not checked.",
     signals: analysis.signals.map(({ code, title, description }) => ({ code, title, description })),
     recommendedActions: buildUrlRecommendations(analysis.signals),
-    analysisCoverage: [
-      { code: "URL", title: "URL structure analysis", status: "COMPLETED" },
-      { code: "DOMAIN_AGE", title: "Domain age", status: "SKIPPED" },
-      { code: "REDIRECT", title: "Redirect analysis", status: "SKIPPED" },
-      { code: "REPUTATION", title: "Threat reputation", status: "SKIPPED" },
-    ],
+    analysisCoverage,
   };
 }
 

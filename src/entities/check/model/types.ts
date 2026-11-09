@@ -1,7 +1,8 @@
+import type { AnalysisSource, Confidence } from "../../confidence";
 import type { RiskLevel } from "../../risk";
 
 export type { RiskLevel } from "../../risk";
-export type Confidence = "LOW" | "MEDIUM" | "HIGH";
+export type { Confidence } from "../../confidence";
 
 export type Signal = {
   code: string;
@@ -14,12 +15,6 @@ export type RecommendedAction = {
   title: string;
 };
 
-export type AnalysisCheck = {
-  code: string;
-  title: string;
-  status: "COMPLETED" | "UNAVAILABLE" | "SKIPPED" | "NOT_APPLICABLE";
-};
-
 export type CheckResult = {
   riskLevel: RiskLevel;
   riskScore: number;
@@ -28,7 +23,7 @@ export type CheckResult = {
   analysisNote?: string;
   signals: Signal[];
   recommendedActions: RecommendedAction[];
-  analysisCoverage: AnalysisCheck[];
+  analysisCoverage: AnalysisSource[];
 };
 
 export type AnalysisStep = {

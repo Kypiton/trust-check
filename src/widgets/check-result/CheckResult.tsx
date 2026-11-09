@@ -1,8 +1,8 @@
+import { ANALYSIS_SOURCE_LABELS, type AnalysisSourceStatus } from "@/entities/confidence";
 import type {
   CheckResult as CheckResultData,
   Confidence,
   RiskLevel,
-  AnalysisCheck,
 } from "@/entities/check/model/types";
 
 const riskStyles = {
@@ -17,9 +17,9 @@ const confidenceLabels: Record<Confidence, string> = {
   HIGH: "High confidence",
 };
 
-const coverageLabels: Record<AnalysisCheck["status"], string> = {
+const coverageLabels: Record<AnalysisSourceStatus, string> = {
   COMPLETED: "Completed",
-  UNAVAILABLE: "Unavailable",
+  FAILED: "Failed",
   SKIPPED: "Skipped",
   NOT_APPLICABLE: "Not applicable",
 };
@@ -44,7 +44,7 @@ const summaryClassName = "cursor-pointer rounded-xl px-5 py-4 text-sm font-mediu
 export function CheckResult({ result }: { result: CheckResultData }) {
   const style = riskStyles[result.riskLevel];
   const completed = result.analysisCoverage.filter((check) => check.status === "COMPLETED").length;
-  const attempted = result.analysisCoverage.filter((check) => check.status === "COMPLETED" || check.status === "UNAVAILABLE").length;
+  const applicable = result.analysisCoverage.filter((check) => check.status !== "NOT_APPLICABLE").length;
 
   return (
     <div className="space-y-6">
@@ -114,13 +114,13 @@ export function CheckResult({ result }: { result: CheckResultData }) {
         <summary className={summaryClassName}>
           <span className="ml-1 inline-flex w-[calc(100%-1.5rem)] flex-col gap-1 align-top sm:flex-row sm:justify-between sm:gap-4">
             <span>Analysis coverage</span>
-            <span className="font-normal text-muted">{completed} of {attempted} checks completed</span>
+            <span className="font-normal text-muted">{completed} of {applicable} checks completed</span>
           </span>
         </summary>
         <dl className="space-y-3 border-t border-border px-5 py-4 md:px-6">
           {result.analysisCoverage.map((check) => (
             <div key={check.code} className="flex flex-wrap justify-between gap-x-4 gap-y-1 text-sm">
-              <dt>{check.title}</dt>
+              <dt>{ANALYSIS_SOURCE_LABELS[check.code]}</dt>
               <dd className="text-muted">{coverageLabels[check.status]}</dd>
             </div>
           ))}

@@ -1,14 +1,29 @@
+import { calculateConfidence, type AnalysisSource } from "../../confidence";
 import type { CheckResult } from "./types";
+
+const mockCoverage: AnalysisSource[] = [
+  { code: "TEXT_HEURISTICS", status: "COMPLETED" },
+  { code: "URL_STRUCTURE", status: "COMPLETED" },
+  { code: "DOMAIN_METADATA", status: "COMPLETED" },
+  { code: "THREAT_REPUTATION", status: "FAILED" },
+  { code: "AI_CONTEXT", status: "COMPLETED" },
+];
+const basicCoverage: AnalysisSource[] = [
+  { code: "TEXT_HEURISTICS", status: "COMPLETED" },
+  { code: "URL_STRUCTURE", status: "COMPLETED" },
+];
 
 // Temporary display fixture. Replace at the route boundary when real data exists.
 export const mockCheckResult: CheckResult = {
   riskLevel: "HIGH",
   riskScore: 84,
-  confidence: "HIGH",
+  confidence: calculateConfidence({ sources: mockCoverage, signals: [
+    { code: "OTP_REQUEST" }, { code: "ARTIFICIAL_URGENCY" }, { code: "DOMAIN_MISMATCH" },
+  ] }).level,
   summary: "This message contains several common signs of phishing.",
   signals: [
     {
-      code: "VERIFICATION_CODE_REQUEST",
+      code: "OTP_REQUEST",
       title: "Requests a verification code",
       description: "The message asks you to share a one-time verification code.",
     },
@@ -29,13 +44,7 @@ export const mockCheckResult: CheckResult = {
     { code: "AVOID_PAYMENT", title: "Do not send money" },
     { code: "CONTACT_BANK", title: "Contact the bank using its official website or phone number" },
   ],
-  analysisCoverage: [
-    { code: "TEXT", title: "Text analysis", status: "COMPLETED" },
-    { code: "URL", title: "URL analysis", status: "COMPLETED" },
-    { code: "DOMAIN", title: "Domain analysis", status: "COMPLETED" },
-    { code: "REPUTATION", title: "Threat reputation", status: "UNAVAILABLE" },
-    { code: "AI_CONTEXT", title: "AI context analysis", status: "COMPLETED" },
-  ],
+  analysisCoverage: mockCoverage,
 };
 
 // Temporary preview selection only; no IDs are generated and no data is fetched.
@@ -70,7 +79,7 @@ export function getMockAnalysis(id: string): import("./types").CheckAnalysis {
         result: {
           riskLevel: "LOW",
           riskScore: 18,
-          confidence: "MEDIUM",
+          confidence: calculateConfidence({ sources: basicCoverage, signals: [] }).level,
           summary: "No strong signs of fraud were detected.",
           signals: [
             { code: "NO_SENSITIVE_REQUEST", title: "No request for sensitive information", description: "The message does not ask for passwords, verification codes or payment details." },
@@ -80,7 +89,7 @@ export function getMockAnalysis(id: string): import("./types").CheckAnalysis {
             { code: "VERIFY_SENDER", title: "Verify the sender before sharing personal information" },
             { code: "USE_OFFICIAL_CHANNELS", title: "Use the organization’s official website if you are unsure" },
           ],
-          analysisCoverage: completedCoverage,
+          analysisCoverage: basicCoverage,
         },
       };
     case "medium":
@@ -89,7 +98,7 @@ export function getMockAnalysis(id: string): import("./types").CheckAnalysis {
         result: {
           riskLevel: "MEDIUM",
           riskScore: 46,
-          confidence: "MEDIUM",
+          confidence: calculateConfidence({ sources: basicCoverage, signals: [] }).level,
           summary: "Some suspicious signs were detected.",
           signals: [
             { code: "UNEXPECTED_REQUEST", title: "Unexpected request to take action", description: "The message asks you to follow a link without clearly explaining why." },
@@ -99,13 +108,13 @@ export function getMockAnalysis(id: string): import("./types").CheckAnalysis {
             { code: "VERIFY_REQUEST", title: "Confirm the request through an official contact channel" },
             { code: "PAUSE", title: "Avoid sharing sensitive information until you have verified the sender" },
           ],
-          analysisCoverage: completedCoverage,
+          analysisCoverage: basicCoverage,
         },
       };
     default:
       return {
         status: "COMPLETED",
-        result: { ...mockCheckResult, analysisCoverage: completedCoverage },
+        result: { ...mockCheckResult, analysisCoverage: completedCoverage, confidence: calculateConfidence({ sources: completedCoverage, signals: [] }).level },
       };
   }
 }

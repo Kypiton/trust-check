@@ -1,3 +1,4 @@
+import { calculateConfidence } from "../../../entities/confidence";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { calculateRisk } from "../../../entities/risk";
 import { analyzeTextAction } from "../actions/analyze-text-action";
@@ -31,15 +32,18 @@ describe("text check orchestration", () => {
   });
 
   it("maps a MEDIUM result", () => {
-    expect(completed("Send us the verification code.")).toMatchObject({ riskScore: 35, riskLevel: "MEDIUM", confidence: "MEDIUM", summary: "Some suspicious signs were detected." });
+    expect(completed("Send us the verification code.")).toMatchObject({ riskScore: 35, riskLevel: "MEDIUM", confidence: "LOW", summary: "Some suspicious signs were detected." });
   });
 
   it.each([
     [normal, "LOW"],
-    ["Send us the verification code.", "MEDIUM"],
-    [phishing, "HIGH"],
-  ])("keeps temporary confidence separate from risk for %s", (text, confidence) => {
-    expect(completed(text).confidence).toBe(confidence);
+    ["Send us the verification code.", "LOW"],
+    [phishing, "MEDIUM"],
+  ])("uses coverage-based confidence independently of risk for %s", (text, confidence) => {
+    const result = completed(text);
+    const computed = calculateConfidence({ sources: result.analysisCoverage, signals: analyzer.analyzeText(text).signals });
+    expect(result.confidence).toBe(confidence);
+    expect(result.confidence).toBe(computed.level);
   });
 
   it.each([
@@ -65,15 +69,14 @@ describe("text check orchestration", () => {
   it("does not claim absent signals or completed detector families", () => {
     const result = completed(normal);
     expect(result.recommendedActions.map((action) => action.code)).toEqual(["VERIFY_REQUESTS"]);
-    expect(result.analysisCoverage.filter((check) => check.status === "COMPLETED").map((check) => check.code)).toEqual(["TEXT"]);
-    expect(result.analysisCoverage.filter((check) => ["URL", "DOMAIN", "REPUTATION", "AI_CONTEXT"].includes(check.code)).every((check) => check.status === "SKIPPED")).toBe(true);
-    expect(result.analysisCoverage.find((check) => check.code === "SCREENSHOT")?.status).toBe("NOT_APPLICABLE");
+    expect(result.analysisCoverage).toEqual([{ code: "TEXT_HEURISTICS", status: "COMPLETED" }]);
   });
 
   it("copies the analysis score instead of recalculating weights in the adapter", () => {
     const analysis = analyzer.analyzeText(phishing);
     analysis.risk = { ...analysis.risk, score: 77, level: "HIGH" };
     expect(builder.mapTextCheckResult(analysis).riskScore).toBe(77);
+    expect(builder.mapTextCheckResult(analysis).confidence).toBe("MEDIUM");
   });
 
   it.each(["Hello", "...", "1234567890123456", "abcdefghijklmno"])("returns insufficient data without a score for %j", (text) => {
