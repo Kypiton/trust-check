@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import sharp, { type Sharp, type SharpOptions } from "sharp";
 import type { ScreenshotFailureReason, ScreenshotFormat, ScreenshotInput, ScreenshotMimeType, ScreenshotPreparation } from "../model/types";
+import { markPreparedImage } from "./prepared-image";
 
 export const MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024;
 export const MAX_SCREENSHOT_PIXELS = 25_000_000;
@@ -80,10 +81,10 @@ async function normalize(bytes: Buffer, declaredMimeType: string, createImage: I
       return failure("PROCESSING_FAILED");
     }
     if (info.width * info.height > MAX_SCREENSHOT_PIXELS) return failure("PIXEL_LIMIT_EXCEEDED");
-    return { ok: true, image: {
+    return { ok: true, image: markPreparedImage({
       bytes: data, mimeType: mimeTypes[format], format,
       width: info.width, height: info.height, size: data.length,
-    } };
+    }) };
   } catch (error) {
     // Classify native failures internally; never expose native messages or input.
     const message = error instanceof Error ? error.message : "";

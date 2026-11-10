@@ -12,3 +12,6 @@ export type {
   ScreenshotInput, ScreenshotFormat, ScreenshotMimeType,
   NormalizedScreenshot, ScreenshotFailureReason, ScreenshotPreparation,
 } from "./model/types";
+export { extractScreenshotText, MAX_OCR_CONCURRENCY, MAX_OCR_QUEUE, MAX_OCR_TEXT_LENGTH } from "./lib/extract-screenshot-text";
+export { extractUrlsFromText, MAX_SCREENSHOT_URLS } from "./lib/extract-urls-from-text";
+export type { ScreenshotTextExtraction } from "./model/types";

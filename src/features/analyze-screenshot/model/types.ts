@@ -35,3 +35,8 @@ export type ScreenshotFailureReason =
 export type ScreenshotPreparation =
   | { ok: true; image: NormalizedScreenshot }
   | { ok: false; reason: ScreenshotFailureReason };
+
+export type ScreenshotTextExtraction =
+  | { status: "COMPLETED"; text: string; ocrConfidence: number | null; truncated: boolean }
+  | { status: "NO_TEXT" }
+  | { status: "FAILED"; reason: "INVALID_INPUT" | "BUSY" | "OCR_FAILED" | "CLOSED" };
