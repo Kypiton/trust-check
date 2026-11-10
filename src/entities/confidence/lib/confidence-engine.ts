@@ -45,7 +45,8 @@ export function calculateConfidence({ sources, signals }: ConfidenceInput): Conf
   const corroborationPoints = codes.size >= 4 ? 2 : codes.size >= 2 ? 1 : 0;
   const points = sourcePoints + corroborationPoints;
   const confirmedMalicious = coverage.get("THREAT_REPUTATION") === "COMPLETED" &&
-    (codes.has("KNOWN_MALICIOUS_DOMAIN") || codes.has("KNOWN_PHISHING_DOMAIN"));
+    (codes.has("KNOWN_MALICIOUS_DOMAIN") || codes.has("KNOWN_PHISHING_DOMAIN") ||
+      codes.has("KNOWN_MALICIOUS_URL") || codes.has("KNOWN_PHISHING_URL"));
   // Reputation confirmation overrides the level only; points remain the honest
   // sum of the configured source and corroboration contributions.
   const level = confirmedMalicious || points >= 4 ? "HIGH" : points >= 2 ? "MEDIUM" : "LOW";

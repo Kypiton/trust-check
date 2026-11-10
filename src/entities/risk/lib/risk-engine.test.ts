@@ -27,6 +27,8 @@ const weights: [SignalCode, number][] = [
   ["DOMAIN_MISMATCH", 30],
   ["KNOWN_MALICIOUS_DOMAIN", 50],
   ["KNOWN_PHISHING_DOMAIN", 50],
+  ["KNOWN_MALICIOUS_URL", 50],
+  ["KNOWN_PHISHING_URL", 50],
 ];
 
 describe("calculateRisk", () => {
@@ -54,7 +56,7 @@ describe("calculateRisk", () => {
     const input = signal(code);
     const result = calculateRisk([input]);
     expect(result.scoredSignals).toEqual([{ ...input, weight }]);
-    const malicious = code === "KNOWN_MALICIOUS_DOMAIN" || code === "KNOWN_PHISHING_DOMAIN";
+    const malicious = ["KNOWN_MALICIOUS_DOMAIN", "KNOWN_PHISHING_DOMAIN", "KNOWN_MALICIOUS_URL", "KNOWN_PHISHING_URL"].includes(code);
     expect(result.score).toBe(malicious ? 95 : weight);
   });
 
@@ -85,14 +87,14 @@ describe("calculateRisk", () => {
     expect(calculateRisk(codes.map((code) => signal(code)))).toMatchObject({ score: 100, level: "HIGH" });
   });
 
-  it.each(["KNOWN_MALICIOUS_DOMAIN", "KNOWN_PHISHING_DOMAIN"] as const)("applies the reputation floor for %s", (code) => {
+  it.each(["KNOWN_MALICIOUS_DOMAIN", "KNOWN_PHISHING_DOMAIN", "KNOWN_MALICIOUS_URL", "KNOWN_PHISHING_URL"] as const)("applies the reputation floor for %s", (code) => {
     expect(calculateRisk([signal(code, "REPUTATION")])).toMatchObject({ score: 95, level: "HIGH" });
     expect(calculateRisk([signal(code), signal("CREDENTIAL_REQUEST")])).toMatchObject({ score: 95, level: "HIGH" });
     expect(calculateRisk([signal(code), signal("OTP_REQUEST"), signal("IMPERSONATION")])).toMatchObject({ score: 100, level: "HIGH" });
   });
 
-  it("deduplicates reputation evidence before applying the floor", () => {
-    const input = signal("KNOWN_PHISHING_DOMAIN", "REPUTATION");
+  it.each(["KNOWN_PHISHING_DOMAIN", "KNOWN_MALICIOUS_DOMAIN", "KNOWN_PHISHING_URL", "KNOWN_MALICIOUS_URL"] as const)("deduplicates %s before applying the floor", (code) => {
+    const input = signal(code, "REPUTATION");
     expect(calculateRisk([input, input])).toEqual({ score: 95, level: "HIGH", scoredSignals: [{ ...input, weight: 50 }] });
   });
 

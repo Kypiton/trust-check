@@ -80,7 +80,7 @@ describe("calculateConfidence", () => {
     expect(calculateConfidence({ sources: [...sources].reverse(), signals: inputSignals })).toEqual(result);
   });
 
-  it.each(["KNOWN_MALICIOUS_DOMAIN", "KNOWN_PHISHING_DOMAIN"] as const)("overrides confidence only with completed reputation and %s", (code) => {
+  it.each(["KNOWN_MALICIOUS_DOMAIN", "KNOWN_PHISHING_DOMAIN", "KNOWN_MALICIOUS_URL", "KNOWN_PHISHING_URL"] as const)("overrides confidence only with completed reputation and %s", (code) => {
     expect(calculateConfidence({ sources: [source("THREAT_REPUTATION")], signals: signals(code) })).toMatchObject({ points: 2, level: "HIGH" });
     for (const status of ["FAILED", "SKIPPED", "NOT_APPLICABLE"] as const) {
       expect(calculateConfidence({ sources: [source("URL_STRUCTURE"), source("THREAT_REPUTATION", status)], signals: signals(code) })).toMatchObject({ points: 1, level: "LOW" });

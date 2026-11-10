@@ -19,7 +19,9 @@ export type SignalCode =
   | "MULTIPLE_REDIRECTS"
   | "DOMAIN_MISMATCH"
   | "KNOWN_MALICIOUS_DOMAIN"
-  | "KNOWN_PHISHING_DOMAIN";
+  | "KNOWN_PHISHING_DOMAIN"
+  | "KNOWN_MALICIOUS_URL"
+  | "KNOWN_PHISHING_URL";
 
 export type SignalCategory =
   | "TEXT"

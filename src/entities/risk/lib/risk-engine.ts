@@ -26,6 +26,8 @@ const SIGNAL_WEIGHTS = Object.freeze({
   DOMAIN_MISMATCH: 30,
   KNOWN_MALICIOUS_DOMAIN: 50,
   KNOWN_PHISHING_DOMAIN: 50,
+  KNOWN_MALICIOUS_URL: 50,
+  KNOWN_PHISHING_URL: 50,
 } satisfies Record<SignalCode, number>);
 
 function isSignalCode(code: unknown): code is SignalCode {
@@ -62,7 +64,8 @@ export function calculateRisk(signals: readonly DetectedSignal[]): RiskCalculati
   }
 
   const knownMalicious =
-    seen.has("KNOWN_MALICIOUS_DOMAIN") || seen.has("KNOWN_PHISHING_DOMAIN");
+    seen.has("KNOWN_MALICIOUS_DOMAIN") || seen.has("KNOWN_PHISHING_DOMAIN") ||
+    seen.has("KNOWN_MALICIOUS_URL") || seen.has("KNOWN_PHISHING_URL");
   const score = Math.min(100, knownMalicious ? Math.max(95, total) : total);
   const level = score >= 60 ? "HIGH" : score >= 30 ? "MEDIUM" : "LOW";
 
