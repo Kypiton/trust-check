@@ -1,0 +1,57 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum InputType {
+  TEXT
+  URL
+  SCREENSHOT
+}
+
+enum CheckStatus {
+  COMPLETED
+  PARTIAL
+  FAILED
+  INSUFFICIENT_DATA
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum Confidence {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// Raw submitted messages, URLs, screenshots and OCR text are intentionally not persisted.
+model Check {
+  id                 String      @id @default(cuid())
+  userId             String?
+  inputType          InputType
+  status             CheckStatus
+  riskLevel          RiskLevel?
+  riskScore          Int?
+  confidence         Confidence?
+  summary            String?
+  signals            Json        @default("[]")
+  recommendedActions Json        @default("[]")
+  analysisCoverage   Json        @default("[]")
+  analysisNotes      Json?
+  createdAt          DateTime    @default(now()) @db.Timestamptz(3)
+  completedAt        DateTime?   @db.Timestamptz(3)
+  updatedAt          DateTime    @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@index([createdAt(sort: Desc)])
+  // The leading userId also supports ownership filtering without another index.
+  @@index([userId, createdAt(sort: Desc)])
+}
