@@ -2,6 +2,7 @@ import { calculateConfidence } from "../../../entities/confidence";
 import * as confidenceEngine from "../../../entities/confidence";
 import * as riskEngine from "../../../entities/risk";
 import * as domainFeature from "../../analyze-domain";
+import * as redirectFeature from "../../analyze-redirect";
 import * as reputationFeature from "../../analyze-reputation";
 import { IANA_BOOTSTRAP_URL } from "../../analyze-domain/lib/rdap-bootstrap";
 import { RDAP_TIMEOUT_MS } from "../../analyze-domain/lib/rdap-http";
@@ -33,6 +34,9 @@ const skippedReputation: reputationFeature.ReputationAnalysis = {
 };
 
 beforeEach(() => {
+  vi.spyOn(redirectFeature, "analyzeRedirect").mockImplementation(async (url) => ({
+    status: "COMPLETED", initialUrl: url, finalUrl: url, hops: [], signals: [],
+  }));
   // Exercise the real RDAP parser, signal generation and cache with an isolated
   // transport. No test makes an external request.
   fetcher = vi.fn<typeof fetch>().mockImplementation(async (url) => json(String(url) === IANA_BOOTSTRAP_URL ? bootstrap : registration(365)));
@@ -74,13 +78,13 @@ describe("URL result mapping", () => {
     if (!analyzed.valid) throw new Error("Expected valid fixture");
     expect(result.confidence).toBe(confidence);
     expect(result.confidence).toBe(calculateConfidence({ sources: result.analysisCoverage, signals: analyzed.signals }).level);
-    expect(result.analysisNote).toContain("Threat reputation was not checked. Redirects were not checked.");
+    expect(result.analysisNote).toContain("Threat reputation was not checked. Redirect analysis completed successfully.");
   });
 
   it("keeps several suspicious local patterns at MEDIUM confidence", async () => {
     const result = await resultFor(`http://paypa1-login.example/${"a".repeat(220)}`);
     expect(result).toMatchObject({ riskScore: 35, riskLevel: "MEDIUM", confidence: "MEDIUM" });
-    expect(result.analysisCoverage.filter((source) => source.status === "COMPLETED")).toHaveLength(1);
+    expect(result.analysisCoverage.filter((source) => source.status === "COMPLETED")).toHaveLength(2);
   });
 
   it("maps a MEDIUM summary from actual evidence", async () => {
@@ -93,8 +97,8 @@ describe("URL result mapping", () => {
     // HIGH is not currently reachable with only the local URL signals; exercise
     // the mapping contract with a future upstream score, not invented weighting.
     analysis.risk = { ...analysis.risk, score: 77, level: "HIGH" };
-    expect(mapUrlCheckResult(analysis, { status: "NOT_APPLICABLE" }, skippedReputation)).toMatchObject({
-      riskScore: 77, riskLevel: "HIGH", confidence: "LOW",
+    expect(mapUrlCheckResult(analysis, { status: "NOT_APPLICABLE" }, skippedReputation, { status: "COMPLETED", initialUrl: "http://example.com/", finalUrl: "http://example.com/", hops: [], signals: [] })).toMatchObject({
+      riskScore: 77, riskLevel: "HIGH", confidence: "MEDIUM",
       summary: "This link contains several characteristics commonly associated with suspicious or deceptive URLs.",
     });
   });
@@ -125,11 +129,11 @@ describe("URL result mapping", () => {
     expect(result.recommendedActions.map((action) => action.code)).toEqual(["VERIFY_DESTINATION"]);
   });
 
-  it("reports completed URL and domain checks while future sources stay skipped", async () => {
+  it("reports completed URL, domain and redirect checks with unconfigured reputation skipped", async () => {
     expect((await resultFor("https://example.com")).analysisCoverage).toEqual([
       { code: "URL_STRUCTURE", status: "COMPLETED" },
       { code: "DOMAIN_METADATA", status: "COMPLETED" },
-      { code: "REDIRECT_ANALYSIS", status: "SKIPPED" },
+      { code: "REDIRECT_ANALYSIS", status: "COMPLETED" },
       { code: "THREAT_REPUTATION", status: "SKIPPED" },
     ]);
   });
@@ -146,6 +150,7 @@ describe("URL Server Action validation and privacy", () => {
     expect(inspect).not.toHaveBeenCalled();
     expect(domainFeature.analyzeDomain).not.toHaveBeenCalled();
     expect(reputationFeature.analyzeReputation).not.toHaveBeenCalled();
+    expect(redirectFeature.analyzeRedirect).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
   });
 
@@ -162,6 +167,7 @@ describe("URL Server Action validation and privacy", () => {
     expect(analyze).not.toHaveBeenCalled();
     expect(domainFeature.analyzeDomain).not.toHaveBeenCalled();
     expect(reputationFeature.analyzeReputation).not.toHaveBeenCalled();
+    expect(redirectFeature.analyzeRedirect).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
   });
 
@@ -173,6 +179,7 @@ describe("URL Server Action validation and privacy", () => {
     expect(error).not.toHaveBeenCalled();
     expect(domainFeature.analyzeDomain).not.toHaveBeenCalled();
     expect(reputationFeature.analyzeReputation).not.toHaveBeenCalled();
+    expect(redirectFeature.analyzeRedirect).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
   });
 
@@ -208,7 +215,7 @@ describe("URL Server Action validation and privacy", () => {
     expect(JSON.stringify(error.mock.calls)).not.toContain(secret);
   });
 
-  it("does not fetch the submitted URL during orchestration", async () => {
+  it("delegates all networking to the injected enrichments", async () => {
     const fetch = vi.fn(() => { throw new Error("Forbidden network call"); });
     vi.stubGlobal("fetch", fetch);
     const response = await analyzeUrlAction("http://185.23.44.11/login");
@@ -227,7 +234,7 @@ describe("integrated URL and RDAP evidence", () => {
         result: { riskScore: 0, confidence: "MEDIUM", signals: [], analysisCoverage: [
           { code: "URL_STRUCTURE", status: "COMPLETED" },
           { code: "DOMAIN_METADATA", status: "COMPLETED" },
-          { code: "REDIRECT_ANALYSIS", status: "SKIPPED" },
+          { code: "REDIRECT_ANALYSIS", status: "COMPLETED" },
           { code: "THREAT_REPUTATION", status: "SKIPPED" },
         ] },
       },
@@ -236,8 +243,8 @@ describe("integrated URL and RDAP evidence", () => {
 
   it.each([
     ["https://example.com", ["NEW_DOMAIN"], 15, "LOW", "MEDIUM"],
-    ["https://paypal-security-check.xyz", ["BRAND_IMPERSONATION", "NEW_DOMAIN"], 35, "MEDIUM", "MEDIUM"],
-    ["http://paypal-security-check.xyz", ["NO_HTTPS", "BRAND_IMPERSONATION", "NEW_DOMAIN"], 45, "MEDIUM", "MEDIUM"],
+    ["https://paypal-security-check.xyz", ["BRAND_IMPERSONATION", "NEW_DOMAIN"], 35, "MEDIUM", "HIGH"],
+    ["http://paypal-security-check.xyz", ["NO_HTTPS", "BRAND_IMPERSONATION", "NEW_DOMAIN"], 45, "MEDIUM", "HIGH"],
     [`http://paypal-security-check.xyz/${"a".repeat(220)}`, ["NO_HTTPS", "LONG_URL", "BRAND_IMPERSONATION", "NEW_DOMAIN"], 50, "MEDIUM", "HIGH"],
   ] as const)("merges real local and recent-domain signals for %s", async (input, codes, score, level, confidence) => {
     fetcher.mockResolvedValueOnce(json(bootstrap)).mockResolvedValueOnce(json(registration(5)));
@@ -266,7 +273,7 @@ describe("integrated URL and RDAP evidence", () => {
     expect(signals.map((signal) => signal.code)).toEqual(["NO_HTTPS", "BRAND_IMPERSONATION", "NEW_DOMAIN"]);
     expect(confidence).toHaveBeenCalledWith({ sources: result.analysisCoverage, signals });
     expect(result.riskScore).toBe(45);
-    expect(confidence.mock.results[0].value).toMatchObject({ points: 3, level: "MEDIUM" });
+    expect(confidence.mock.results[0].value).toMatchObject({ points: 4, level: "HIGH" });
   });
 
   it("deduplicates signals across detectors before scoring and recommending", async () => {
@@ -280,7 +287,7 @@ describe("integrated URL and RDAP evidence", () => {
     const response = await buildUrlCheckResult("http://example.com", { analyzeDomain: async () => duplicates });
     expect(risk).toHaveBeenCalledTimes(1);
     expect(risk.mock.calls[0][0].map((signal) => signal.code)).toEqual(["NO_HTTPS", "NEW_DOMAIN"]);
-    expect(response).toMatchObject({ ok: true, analysis: { status: "COMPLETED", result: { riskScore: 25, confidence: "MEDIUM" } } });
+    expect(response).toMatchObject({ ok: true, analysis: { status: "COMPLETED", result: { riskScore: 25, confidence: "HIGH" } } });
     if (!response.ok || !("result" in response.analysis)) throw new Error("Expected result");
     expect(response.analysis.result.signals).toHaveLength(2);
     expect(response.analysis.result.recommendedActions).toHaveLength(2);
@@ -304,7 +311,7 @@ describe("integrated URL and RDAP evidence", () => {
       expect(response).toMatchObject({ ok: true, analysis: { status: "COMPLETED", result: { analysisCoverage: [
         { code: "URL_STRUCTURE", status: "COMPLETED" },
         { code: "DOMAIN_METADATA", status: "NOT_APPLICABLE" },
-        { code: "REDIRECT_ANALYSIS", status: "SKIPPED" },
+        { code: "REDIRECT_ANALYSIS", status: "COMPLETED" },
         { code: "THREAT_REPUTATION", status: "SKIPPED" },
       ] } } });
       expect(fetcher).not.toHaveBeenCalled();
@@ -343,6 +350,7 @@ describe("integrated URL and RDAP evidence", () => {
     expect(result).toMatchObject({ ok: true, analysis: { status: "COMPLETED" } });
     expect(domainFeature.analyzeDomain).not.toHaveBeenCalled();
     expect(reputationFeature.analyzeReputation).not.toHaveBeenCalled();
+    expect(redirectFeature.analyzeRedirect).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
   });
 });
@@ -358,7 +366,7 @@ describe("RDAP degradation and async failures", () => {
       analysisCoverage: [
         { code: "URL_STRUCTURE", status: "COMPLETED" },
         { code: "DOMAIN_METADATA", status: "FAILED" },
-        { code: "REDIRECT_ANALYSIS", status: "SKIPPED" },
+        { code: "REDIRECT_ANALYSIS", status: "COMPLETED" },
         { code: "THREAT_REPUTATION", status: "SKIPPED" },
       ],
       analysisNote: expect.stringContaining("Domain registration metadata was unavailable"),
@@ -374,7 +382,7 @@ describe("RDAP degradation and async failures", () => {
       else fetcher.mockRejectedValueOnce(new TypeError("Sensitive provider error"));
     }
     const response = await analyzeUrlAction("https://example.com");
-    expect(response).toMatchObject({ ok: true, analysis: { status: "PARTIAL", result: { riskScore: 0, confidence: "LOW", signals: [] } } });
+    expect(response).toMatchObject({ ok: true, analysis: { status: "PARTIAL", result: { riskScore: 0, confidence: "MEDIUM", signals: [] } } });
     expect(JSON.stringify(response)).not.toContain("Sensitive provider error");
   });
 
@@ -384,7 +392,7 @@ describe("RDAP degradation and async failures", () => {
     const pending = analyzeUrlAction("http://example.com");
     await vi.advanceTimersByTimeAsync(RDAP_TIMEOUT_MS);
     expect(await pending).toMatchObject({ ok: true, analysis: { status: "PARTIAL", result: {
-      riskScore: 10, confidence: "LOW", signals: [{ code: "NO_HTTPS" }],
+      riskScore: 10, confidence: "MEDIUM", signals: [{ code: "NO_HTTPS" }],
       analysisCoverage: expect.arrayContaining([{ code: "DOMAIN_METADATA", status: "FAILED" }]),
     } } });
     expect(fetcher.mock.calls[1][1]?.signal?.aborted).toBe(true);

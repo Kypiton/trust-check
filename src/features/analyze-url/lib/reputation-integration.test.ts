@@ -6,6 +6,7 @@ import * as confidenceEngine from "../../../entities/confidence";
 import type { CheckResult as ResultData } from "../../../entities/check/model/types";
 import { CheckResult } from "../../../widgets/check-result/CheckResult";
 import * as domainFeature from "../../analyze-domain";
+import * as redirectFeature from "../../analyze-redirect";
 import * as reputationFeature from "../../analyze-reputation";
 import { createGoogleWebRiskProvider, WEB_RISK_TIMEOUT_MS } from "../../analyze-reputation/providers/google-web-risk";
 import { analyzeUrlAction } from "../actions/analyze-url-action";
@@ -36,7 +37,10 @@ function completedLookup(verdicts: reputationFeature.ReputationVerdict[]) {
 
 let providerFetch: ReturnType<typeof vi.fn<typeof fetch>>;
 beforeEach(() => {
-  // Both external dependencies are isolated, regardless of developer credentials.
+  vi.spyOn(redirectFeature, "analyzeRedirect").mockImplementation(async (url) => ({
+    status: "COMPLETED", initialUrl: url, finalUrl: url, hops: [], signals: [],
+  }));
+  // All external dependencies are isolated, regardless of developer credentials.
   // Exercise the real reputation adapter via injected transport, never Google.
   vi.stubGlobal("fetch", vi.fn(() => { throw new Error("Unexpected external request"); }));
   providerFetch = vi.fn<typeof fetch>().mockResolvedValue(json({}));
@@ -56,7 +60,7 @@ describe("real Link flow with reputation enrichment", () => {
     expect(result.analysisCoverage).toEqual([
       { code: "URL_STRUCTURE", status: "COMPLETED" },
       { code: "DOMAIN_METADATA", status: "COMPLETED" },
-      { code: "REDIRECT_ANALYSIS", status: "SKIPPED" },
+      { code: "REDIRECT_ANALYSIS", status: "COMPLETED" },
       { code: "THREAT_REPUTATION", status: "COMPLETED" },
     ]);
     expect(result.analysisNote).toContain("Threat reputation was checked.");
@@ -96,7 +100,7 @@ describe("real Link flow with reputation enrichment", () => {
     expect(signals.map(({ code }) => code)).toEqual(["NO_HTTPS", "BRAND_IMPERSONATION", "NEW_DOMAIN", "KNOWN_PHISHING_URL"]);
     expect(result).toMatchObject({ riskScore: 95, riskLevel: "HIGH", confidence: "HIGH" });
     expect(confidence).toHaveBeenCalledExactlyOnceWith({ sources: result.analysisCoverage, signals });
-    expect(confidence.mock.results[0].value).toMatchObject({ level: result.confidence, points: 6 });
+    expect(confidence.mock.results[0].value).toMatchObject({ level: result.confidence, points: 7 });
   });
 
   it("caps the combined score at 100 through the engine", async () => {
@@ -145,7 +149,7 @@ describe("real Link flow with reputation enrichment", () => {
     const response = await analyzeUrlAction("http://example.com");
     expect(response).toMatchObject({ ok: true, analysis: { status: "PARTIAL" } });
     const result = resultOf(response);
-    expect(result).toMatchObject({ riskScore: 25, confidence: "MEDIUM" });
+    expect(result).toMatchObject({ riskScore: 25, confidence: "HIGH" });
     expect(result.signals.map(({ code }) => code)).toEqual(["NO_HTTPS", "NEW_DOMAIN"]);
     expect(result.analysisCoverage).toContainEqual({ code: "THREAT_REPUTATION", status: "FAILED" });
     expect(result.analysisNote).toContain("Threat reputation was unavailable.");
@@ -206,6 +210,7 @@ describe("real Link flow with reputation enrichment", () => {
     expect(await analyzeUrlAction(input)).toMatchObject({ ok: false });
     expect(domainFeature.analyzeDomain).not.toHaveBeenCalled();
     expect(reputationFeature.analyzeReputation).not.toHaveBeenCalled();
+    expect(redirectFeature.analyzeRedirect).not.toHaveBeenCalled();
     expect(providerFetch).not.toHaveBeenCalled();
   });
 
@@ -284,6 +289,7 @@ describe("real Link flow with reputation enrichment", () => {
     expect(await analyzeTextAction("Please send me your verification code immediately.")).toMatchObject({ ok: true, analysis: { status: "COMPLETED" } });
     expect(domainFeature.analyzeDomain).not.toHaveBeenCalled();
     expect(reputationFeature.analyzeReputation).not.toHaveBeenCalled();
+    expect(redirectFeature.analyzeRedirect).not.toHaveBeenCalled();
     expect(providerFetch).not.toHaveBeenCalled();
   });
 });

@@ -24,6 +24,14 @@ export type CheckResult = {
   signals: Signal[];
   recommendedActions: RecommendedAction[];
   analysisCoverage: AnalysisSource[];
+  // Sanitized observations only; raw chain URLs and network data stay server-side.
+  redirectDetails?: {
+    hopCount: number;
+    crossDomain: boolean;
+    protocolDowngrade: boolean;
+    targetIsIp: boolean;
+    shortenedLinkDestinationChange: boolean;
+  };
 };
 
 export type AnalysisStep = {

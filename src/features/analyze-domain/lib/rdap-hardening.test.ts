@@ -215,6 +215,7 @@ describe("provider backoff", () => {
     await initial;
     const response = await buildUrlCheckResult("http://paypal-login.com", {
       analyzeDomain: h.analyze,
+      analyzeRedirect: async (url) => ({ status: "COMPLETED", initialUrl: url, finalUrl: url, hops: [], signals: [] }),
       analyzeReputation: async () => ({
         status: "SKIPPED", reason: "MISSING_CONFIGURATION", signals: [],
         source: { code: "THREAT_REPUTATION", status: "SKIPPED" },

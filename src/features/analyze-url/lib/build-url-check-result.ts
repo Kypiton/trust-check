@@ -3,6 +3,7 @@ import type { CheckAnalysis, CheckResult, RecommendedAction } from "../../../ent
 import { calculateRisk, type DetectedSignal, type RiskCalculation, type RiskLevel, type SignalCode } from "../../../entities/risk";
 import { analyzeDomain, type DomainAnalysis } from "../../analyze-domain";
 import { analyzeReputation, currentReputationAnalysis, type ReputationAnalysis } from "../../analyze-reputation";
+import { analyzeRedirect, type RedirectAnalysis } from "../../analyze-redirect";
 import { inspectUrl } from "./analyze-url";
 import { MAX_URL_INPUT_LENGTH } from "./limits";
 
@@ -43,6 +44,13 @@ export function buildUrlRecommendations(signals: readonly DetectedSignal[]): Rec
   for (const signal of signals) {
     for (const action of actionsBySignal[signal.code] ?? []) actions.set(action.code, { ...action });
   }
+  if (signals.some(({ code }) => code === "MULTIPLE_REDIRECTS") &&
+    !actions.has("DO_NOT_OPEN_LINK") && !actions.has("VERIFY_SHORTENED_DESTINATION")) {
+    actions.set("VERIFY_DESTINATION", {
+      code: "VERIFY_DESTINATION",
+      title: "Check the final destination carefully before entering sensitive information.",
+    });
+  }
   if (!actions.size) {
     actions.set("VERIFY_DESTINATION", {
       code: "VERIFY_DESTINATION",
@@ -52,7 +60,7 @@ export function buildUrlRecommendations(signals: readonly DetectedSignal[]): Rec
   return [...actions.values()];
 }
 
-function analysisNote(domain: DomainAnalysis, reputation: ReputationAnalysis): string {
+function analysisNote(domain: DomainAnalysis, reputation: ReputationAnalysis, redirect: RedirectAnalysis): string {
   let note: string;
   switch (domain.status) {
     case "COMPLETED":
@@ -77,18 +85,28 @@ function analysisNote(domain: DomainAnalysis, reputation: ReputationAnalysis): s
       note += " Threat reputation was not checked.";
       break;
   }
-  return `${note} Redirects were not checked.`;
+  if (redirect.status === "COMPLETED") {
+    note += " Redirect analysis completed successfully.";
+    if (redirect.hops.length > 0) note += " Domain and threat reputation coverage refers to the submitted URL, not the final destination.";
+  } else {
+    const blocked = ["BLOCKED_IP", "BLOCKED_HOST", "PORT_NOT_ALLOWED", "CREDENTIALS_NOT_ALLOWED", "UNSUPPORTED_PROTOCOL"].includes(redirect.reason);
+    note += blocked
+      ? " Redirect analysis could not safely follow one of the destinations."
+      : " Redirect analysis could not be completed.";
+  }
+  return note;
 }
 
 export function mapUrlCheckResult(
   analysis: { signals: readonly DetectedSignal[]; risk: RiskCalculation },
   domain: DomainAnalysis,
   reputation: ReputationAnalysis,
+  redirect: RedirectAnalysis,
 ): CheckResult {
   const analysisCoverage: AnalysisSource[] = [
     { code: "URL_STRUCTURE", status: "COMPLETED" },
     { code: "DOMAIN_METADATA", status: domain.status === "UNAVAILABLE" ? "FAILED" : domain.status },
-    { code: "REDIRECT_ANALYSIS", status: "SKIPPED" },
+    { code: "REDIRECT_ANALYSIS", status: redirect.status === "COMPLETED" ? "COMPLETED" : "FAILED" },
     { code: reputation.source.code, status: reputation.source.status },
   ];
   const confidence = calculateConfidence({ sources: analysisCoverage, signals: analysis.signals });
@@ -102,10 +120,22 @@ export function mapUrlCheckResult(
     summary: confirmedThreat && analysis.risk.level === "HIGH"
       ? "This link was identified by a threat reputation source and should be treated as high risk."
       : summaries[analysis.risk.level],
-    analysisNote: analysisNote(domain, reputation),
-    signals: analysis.signals.map(({ code, title, description }) => ({ code, title, description })),
+    analysisNote: analysisNote(domain, reputation, redirect),
+    signals: analysis.signals.map(({ code, title, description }) => ({
+      code, title,
+      description: code === "SHORTENED_URL" && redirect.status === "COMPLETED"
+        ? "The hostname matches a configured URL shortening service. Its HTTP redirect chain was checked."
+        : description,
+    })),
     recommendedActions: buildUrlRecommendations(analysis.signals),
     analysisCoverage,
+    ...(redirect.status === "COMPLETED" ? { redirectDetails: {
+      hopCount: redirect.hops.length,
+      crossDomain: redirect.hops.some((hop) => hop.crossDomain),
+      protocolDowngrade: redirect.hops.some((hop) => hop.protocolDowngrade),
+      targetIsIp: redirect.hops.some((hop) => hop.targetIsIp),
+      shortenedLinkDestinationChange: redirect.hops.some((hop) => hop.shortenedLinkDestinationChange),
+    } } : {}),
   };
 }
 
@@ -115,7 +145,8 @@ export async function buildUrlCheckResult(
   {
     analyzeDomain: domainAnalyzer = analyzeDomain,
     analyzeReputation: reputationAnalyzer = analyzeReputation,
-  }: { analyzeDomain?: typeof analyzeDomain; analyzeReputation?: typeof analyzeReputation } = {},
+    analyzeRedirect: redirectAnalyzer = analyzeRedirect,
+  }: { analyzeDomain?: typeof analyzeDomain; analyzeReputation?: typeof analyzeReputation; analyzeRedirect?: typeof analyzeRedirect } = {},
 ): Promise<UrlCheckResponse> {
   const invalid: UrlCheckResponse = { ok: false, error: "Enter a valid HTTP or HTTPS link." };
   if (typeof value !== "string") return invalid;
@@ -125,16 +156,20 @@ export async function buildUrlCheckResult(
   if (!analysis.valid) return invalid;
   // The domain feature owns applicability and registrable-domain resolution.
   // IPs and hosts without a registrable domain return without a network lookup.
-  const [domain, reputationResult] = await Promise.all([
+  const [domain, reputationResult, redirect] = await Promise.all([
     domainAnalyzer(analysis.hostname),
     reputationAnalyzer(analysis.normalizedUrl),
+    redirectAnalyzer(analysis.normalizedUrl),
   ]);
-  // Reputation may have expired while waiting for the independent RDAP lookup.
+  // The redirect result retains finalUrl internally. Do not restart enrichment
+  // on that destination or serialize the raw chain into the public result.
+  // Reputation may expire while waiting for RDAP or redirect analysis.
   const reputation = currentReputationAnalysis(reputationResult);
   const merged = [
     ...analysis.signals,
     ...(domain.status === "COMPLETED" ? domain.signals : []),
     ...(reputation.status === "COMPLETED" ? reputation.signals : []),
+    ...(redirect.status === "COMPLETED" ? redirect.signals : []),
   ];
   const unique = new Map<SignalCode, DetectedSignal>();
   for (const signal of merged) {
@@ -142,9 +177,9 @@ export async function buildUrlCheckResult(
   }
   const signals = [...unique.values()];
   const risk = calculateRisk(signals);
-  const result = mapUrlCheckResult({ signals, risk }, domain, reputation);
-  // Optional unconfigured enrichment and future checks remain SKIPPED. Only a
+  const result = mapUrlCheckResult({ signals, risk }, domain, reputation, redirect);
+  // Optional unconfigured reputation remains SKIPPED. Only a
   // failure of an applicable current provider makes the result PARTIAL.
-  const partial = domain.status === "UNAVAILABLE" || reputation.status === "UNAVAILABLE";
+  const partial = domain.status === "UNAVAILABLE" || reputation.status === "UNAVAILABLE" || redirect.status === "UNAVAILABLE";
   return { ok: true, analysis: { status: partial ? "PARTIAL" : "COMPLETED", result } };
 }

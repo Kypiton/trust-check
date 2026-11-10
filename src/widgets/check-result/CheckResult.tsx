@@ -133,6 +133,15 @@ export function CheckResult({ result }: { result: CheckResultData }) {
           <div className="flex justify-between gap-4"><dt className="text-muted">Risk score</dt><dd className="tabular-nums">{result.riskScore}</dd></div>
           <div className="flex justify-between gap-4"><dt className="text-muted">Risk level</dt><dd>{result.riskLevel}</dd></div>
           <div className="flex justify-between gap-4"><dt className="text-muted">Confidence</dt><dd>{result.confidence}</dd></div>
+          {result.redirectDetails && (
+            <>
+              <div className="flex justify-between gap-4"><dt className="text-muted">HTTP redirects followed</dt><dd className="tabular-nums">{result.redirectDetails.hopCount}</dd></div>
+              {result.redirectDetails.crossDomain && <div><dt className="text-muted">Redirect destination</dt><dd>Redirect destination changed to another domain.</dd></div>}
+              {result.redirectDetails.protocolDowngrade && <div><dt className="text-muted">Redirect protocol</dt><dd>The redirect chain changed from HTTPS to HTTP.</dd></div>}
+              {result.redirectDetails.targetIsIp && <div><dt className="text-muted">Redirect address</dt><dd>A redirect destination used a literal IP address.</dd></div>}
+              {result.redirectDetails.shortenedLinkDestinationChange && <div><dt className="text-muted">Shortened link</dt><dd>The shortened link redirected to a different hostname.</dd></div>}
+            </>
+          )}
         </dl>
       </details>
     </div>
