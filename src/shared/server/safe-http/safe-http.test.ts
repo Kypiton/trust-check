@@ -323,6 +323,75 @@ describe("headers-only HTTP lifecycle", () => {
 });
 
 describe("bounded admission", () => {
+  it("does no work for an already expired parent deadline", async () => {
+    const h = setup();
+    const parent = new AbortController();
+    parent.abort();
+    expect(await h.run("https://example.com", parent.signal)).toEqual({ ok: false, reason: "TIMEOUT" });
+    expect(h.resolver).not.toHaveBeenCalled();
+    expect(h.requests).toHaveLength(0);
+  });
+
+  it("cancels an active request at the parent deadline and releases its slot", async () => {
+    const h = setup();
+    const parent = new AbortController();
+    const first = h.run("https://example.com", parent.signal);
+    const others = Array.from({ length: 5 }, (_, i) => h.run(`https://site${i}.example`));
+    await flush();
+    expect(h.requests).toHaveLength(5);
+    parent.abort();
+    expect(await first).toEqual({ ok: false, reason: "TIMEOUT" });
+    await flush();
+    expect(h.requests[0].request.destroyed).toBe(true);
+    expect(h.requests).toHaveLength(6);
+    h.requests.slice(1).forEach((r) => r.respond());
+    await Promise.all(others);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("removes queued work when its parent deadline expires", async () => {
+    const h = setup();
+    const blockers = Array.from({ length: 5 }, (_, i) => h.run(`https://site${i}.example`));
+    const parent = new AbortController();
+    const queued = h.run("https://queued.example", parent.signal);
+    await flush();
+    parent.abort();
+    expect(await queued).toEqual({ ok: false, reason: "TIMEOUT" });
+    h.requests.forEach((r) => r.respond());
+    await Promise.all(blockers);
+    expect(h.resolver).toHaveBeenCalledTimes(5);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("aborts pending DNS at the parent deadline and prevents a late connection", async () => {
+    const h = setup();
+    const parent = new AbortController();
+    let finish!: (value: ResolvedAddress[]) => void;
+    h.resolver.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const pending = h.run("https://example.com", parent.signal);
+    await flush();
+    parent.abort();
+    expect(await pending).toEqual({ ok: false, reason: "TIMEOUT" });
+    expect(h.resolver.mock.calls[0][1].aborted).toBe(true);
+    finish([{ address: PUBLIC_V4, family: 4 }]);
+    await flush();
+    expect(h.requests).toHaveLength(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("removes the parent abort listener after successful completion", async () => {
+    const h = setup();
+    const parent = new AbortController();
+    const remove = vi.spyOn(parent.signal, "removeEventListener");
+    const pending = h.run("https://example.com", parent.signal);
+    await flush();
+    h.requests[0].respond();
+    expect(await pending).toMatchObject({ ok: true });
+    expect(remove).toHaveBeenCalledWith("abort", expect.any(Function));
+    parent.abort();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it.each(["success", "failure"])("never exceeds five active requests and releases a slot after %s", async (outcome) => {
     const h = setup();
     const checks = Array.from({ length: 6 }, (_, i) => h.run(`https://site${i}.example`));

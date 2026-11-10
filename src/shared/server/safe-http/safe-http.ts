@@ -164,7 +164,10 @@ export function createSafeHttp({
     });
   }
 
-  return async (input: unknown): Promise<SafeHttpResult> => {
+  // A parent deadline may cancel a whole sequence, including this call's DNS,
+  // queue wait or socket. It never extends the existing per-request timeout.
+  return async (input: unknown, deadlineSignal?: AbortSignal): Promise<SafeHttpResult> => {
+    if (deadlineSignal?.aborted) return failure("TIMEOUT");
     const parsed = parse(input);
     if (!(parsed instanceof URL)) return parsed;
     if (active >= MAX_SAFE_HTTP_CONCURRENCY && queue.length >= MAX_SAFE_HTTP_QUEUE) return failure("QUEUE_FULL");
@@ -172,9 +175,12 @@ export function createSafeHttp({
     const expiresAt = now() + SAFE_HTTP_TIMEOUT_MS;
     const expired = () => controller.signal.aborted || now() >= expiresAt;
     let timer: ReturnType<typeof setTimeout>;
+    let onDeadline: () => void;
     let slot: Release | null = null;
     const timeout = new Promise<SafeHttpResult>((resolve) => {
-      timer = setTimeout(() => { controller.abort(); resolve(failure("TIMEOUT")); }, SAFE_HTTP_TIMEOUT_MS);
+      onDeadline = () => { controller.abort(); resolve(failure("TIMEOUT")); };
+      deadlineSignal?.addEventListener("abort", onDeadline, { once: true });
+      timer = setTimeout(onDeadline, SAFE_HTTP_TIMEOUT_MS);
     });
     async function run(): Promise<SafeHttpResult> {
       slot = await acquire(controller.signal);
@@ -205,6 +211,7 @@ export function createSafeHttp({
       return failure("NETWORK_ERROR");
     } finally {
       clearTimeout(timer!);
+      deadlineSignal?.removeEventListener("abort", onDeadline!);
       controller.abort();
       // Abort/destroy before releasing capacity. Late DNS completions see the
       // aborted signal and cannot start a request after their slot was released.
