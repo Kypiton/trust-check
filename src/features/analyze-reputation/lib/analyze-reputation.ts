@@ -2,6 +2,19 @@ import type { DetectedSignal } from "../../../entities/risk";
 import type { ReputationAnalysis, ReputationLookup, ReputationProvider } from "../model/types";
 import { createGoogleWebRiskProvider } from "../providers/google-web-risk";
 
+/** Reusable freshness check for consumers that wait for other enrichments. */
+export function currentReputationAnalysis(analysis: ReputationAnalysis, now = Date.now()): ReputationAnalysis {
+  if (analysis.status !== "COMPLETED" || analysis.expiresAt === undefined) return analysis;
+  const expiration = Date.parse(analysis.expiresAt);
+  if (Number.isFinite(expiration) && expiration > now) return analysis;
+  return {
+    status: "UNAVAILABLE",
+    reason: Number.isFinite(expiration) ? "EXPIRED_RESPONSE" : "INVALID_RESPONSE",
+    signals: [],
+    source: { code: "THREAT_REPUTATION", status: "FAILED" },
+  };
+}
+
 /** Evidence and coverage only. Final risk/confidence remain pipeline decisions. */
 export function createReputationAnalyzer({
   provider = createGoogleWebRiskProvider(),
@@ -14,12 +27,6 @@ export function createReputationAnalyzer({
     } catch {
       // Never propagate provider exceptions that may contain URLs/credentials.
       lookup = { status: "UNAVAILABLE", reason: "NETWORK_ERROR" };
-    }
-    // Recheck freshness at the point evidence is consumed, not only on receipt.
-    if (lookup.status === "COMPLETED" && lookup.expiresAt !== undefined) {
-      const expiration = Date.parse(lookup.expiresAt);
-      if (!Number.isFinite(expiration)) lookup = { status: "UNAVAILABLE", reason: "INVALID_RESPONSE" };
-      else if (expiration <= now()) lookup = { status: "UNAVAILABLE", reason: "EXPIRED_RESPONSE" };
     }
     const signals: DetectedSignal[] = [];
     if (lookup.status === "COMPLETED") {
@@ -37,11 +44,11 @@ export function createReputationAnalyzer({
       });
       // UNWANTED_SOFTWARE remains metadata: no canonical weighted signal yet.
     }
-    return {
+    return currentReputationAnalysis({
       ...lookup,
       signals,
       source: { code: "THREAT_REPUTATION", status: lookup.status === "UNAVAILABLE" ? "FAILED" : lookup.status },
-    };
+    }, now());
   };
 }
 

@@ -2,6 +2,7 @@ import { calculateConfidence } from "../../../entities/confidence";
 import * as confidenceEngine from "../../../entities/confidence";
 import * as riskEngine from "../../../entities/risk";
 import * as domainFeature from "../../analyze-domain";
+import * as reputationFeature from "../../analyze-reputation";
 import { IANA_BOOTSTRAP_URL } from "../../analyze-domain/lib/rdap-bootstrap";
 import { RDAP_TIMEOUT_MS } from "../../analyze-domain/lib/rdap-http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -26,12 +27,17 @@ const registration = (days: number) => ({
   events: [{ eventAction: "registration", eventDate: new Date(NOW - days * 86_400_000).toISOString() }],
 });
 let fetcher: ReturnType<typeof vi.fn<typeof fetch>>;
+const skippedReputation: reputationFeature.ReputationAnalysis = {
+  status: "SKIPPED", reason: "MISSING_CONFIGURATION", signals: [],
+  source: { code: "THREAT_REPUTATION", status: "SKIPPED" },
+};
 
 beforeEach(() => {
   // Exercise the real RDAP parser, signal generation and cache with an isolated
   // transport. No test makes an external request.
   fetcher = vi.fn<typeof fetch>().mockImplementation(async (url) => json(String(url) === IANA_BOOTSTRAP_URL ? bootstrap : registration(365)));
   vi.spyOn(domainFeature, "analyzeDomain").mockImplementation(domainFeature.createDomainAnalyzer({ fetch: fetcher, now: () => NOW }));
+  vi.spyOn(reputationFeature, "analyzeReputation").mockResolvedValue(skippedReputation);
 });
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
@@ -68,7 +74,7 @@ describe("URL result mapping", () => {
     if (!analyzed.valid) throw new Error("Expected valid fixture");
     expect(result.confidence).toBe(confidence);
     expect(result.confidence).toBe(calculateConfidence({ sources: result.analysisCoverage, signals: analyzed.signals }).level);
-    expect(result.analysisNote).toContain("Redirects and threat reputation were not checked.");
+    expect(result.analysisNote).toContain("Threat reputation was not checked. Redirects were not checked.");
   });
 
   it("keeps several suspicious local patterns at MEDIUM confidence", async () => {
@@ -87,7 +93,7 @@ describe("URL result mapping", () => {
     // HIGH is not currently reachable with only the local URL signals; exercise
     // the mapping contract with a future upstream score, not invented weighting.
     analysis.risk = { ...analysis.risk, score: 77, level: "HIGH" };
-    expect(mapUrlCheckResult(analysis, { status: "NOT_APPLICABLE" })).toMatchObject({
+    expect(mapUrlCheckResult(analysis, { status: "NOT_APPLICABLE" }, skippedReputation)).toMatchObject({
       riskScore: 77, riskLevel: "HIGH", confidence: "LOW",
       summary: "This link contains several characteristics commonly associated with suspicious or deceptive URLs.",
     });
@@ -139,6 +145,7 @@ describe("URL Server Action validation and privacy", () => {
     expect(response).toEqual({ ok: false, error: `Keep your link to ${MAX_URL_INPUT_LENGTH} characters or fewer.` });
     expect(inspect).not.toHaveBeenCalled();
     expect(domainFeature.analyzeDomain).not.toHaveBeenCalled();
+    expect(reputationFeature.analyzeReputation).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
   });
 
@@ -154,6 +161,7 @@ describe("URL Server Action validation and privacy", () => {
     expect(await analyzeUrlAction(input)).toEqual({ ok: false, error: "Enter a valid HTTP or HTTPS link." });
     expect(analyze).not.toHaveBeenCalled();
     expect(domainFeature.analyzeDomain).not.toHaveBeenCalled();
+    expect(reputationFeature.analyzeReputation).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
   });
 
@@ -164,6 +172,7 @@ describe("URL Server Action validation and privacy", () => {
     expect(response).not.toHaveProperty("analysis");
     expect(error).not.toHaveBeenCalled();
     expect(domainFeature.analyzeDomain).not.toHaveBeenCalled();
+    expect(reputationFeature.analyzeReputation).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
   });
 
@@ -333,6 +342,7 @@ describe("integrated URL and RDAP evidence", () => {
     const result = await analyzeTextAction("Please send me your verification code immediately.");
     expect(result).toMatchObject({ ok: true, analysis: { status: "COMPLETED" } });
     expect(domainFeature.analyzeDomain).not.toHaveBeenCalled();
+    expect(reputationFeature.analyzeReputation).not.toHaveBeenCalled();
     expect(fetcher).not.toHaveBeenCalled();
   });
 });

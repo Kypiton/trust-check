@@ -213,7 +213,13 @@ describe("provider backoff", () => {
     await vi.advanceTimersByTimeAsync(0);
     h.requests[0].respond(new Response(null, { status: 500 }));
     await initial;
-    const response = await buildUrlCheckResult("http://paypal-login.com", { analyzeDomain: h.analyze });
+    const response = await buildUrlCheckResult("http://paypal-login.com", {
+      analyzeDomain: h.analyze,
+      analyzeReputation: async () => ({
+        status: "SKIPPED", reason: "MISSING_CONFIGURATION", signals: [],
+        source: { code: "THREAT_REPUTATION", status: "SKIPPED" },
+      }),
+    });
     expect(response).toMatchObject({ ok: true, analysis: { status: "PARTIAL", result: {
       riskScore: 30, signals: [{ code: "NO_HTTPS" }, { code: "BRAND_IMPERSONATION" }],
       analysisCoverage: expect.arrayContaining([{ code: "DOMAIN_METADATA", status: "FAILED" }]),
