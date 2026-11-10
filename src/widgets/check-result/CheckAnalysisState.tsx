@@ -75,6 +75,7 @@ export function CheckAnalysisState({ analysis, onRetry, onNewCheck }: {
 
   const failed = analysis.status === "FAILED";
   const unsupportedLanguage = analysis.status === "INSUFFICIENT_DATA" && analysis.reason === "UNSUPPORTED_LANGUAGE";
+  const noReadableText = analysis.status === "INSUFFICIENT_DATA" && analysis.reason === "NO_READABLE_TEXT";
   return (
     <section aria-labelledby="outcome-heading" className="rounded-xl border border-border bg-surface p-5 md:p-8">
       <div className="flex items-center gap-3">
@@ -82,7 +83,7 @@ export function CheckAnalysisState({ analysis, onRetry, onNewCheck }: {
         <h1 id="outcome-heading" className="text-2xl font-semibold tracking-tight">{failed ? "Analysis failed" : unsupportedLanguage ? "English text required" : "Not enough information"}</h1>
       </div>
       <p className="mt-3 text-base leading-7 text-muted">
-        {failed ? "Something went wrong while checking this content." : unsupportedLanguage ? "Text analysis currently supports English only. We could not assess this message. Please provide the message in English." : "We need more information to assess this content."}
+        {failed ? "Something went wrong while checking this content." : unsupportedLanguage ? "Text analysis currently supports English only. We could not assess this message. Please provide the message in English." : noReadableText ? "We couldn't find readable text in this screenshot. Please upload a clearer screenshot with English text." : "We need more information to assess this content."}
       </p>
       {!failed && !unsupportedLanguage && (
         <ul className="mt-5 list-disc space-y-2 pl-5 text-sm leading-6 text-muted">

@@ -4,7 +4,9 @@ import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } fr
 import type { CheckAnalysis } from "@/entities/check/model/types";
 import { analyzeTextAction } from "@/features/analyze-text/actions/analyze-text-action";
 import { analyzeUrlAction } from "@/features/analyze-url/actions/analyze-url-action";
+import { analyzeScreenshotAction } from "@/features/analyze-screenshot/actions/analyze-screenshot-action";
 import { CheckAnalysisState } from "@/widgets/check-result";
+import { ScreenshotInput } from "./ScreenshotInput";
 
 const modes = [
   { value: "TEXT", label: "Text", path: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6ZM14 2v6h6M8 13h8M8 17h5" },
@@ -19,6 +21,7 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
   const [mode, setMode] = useState<Mode>("TEXT");
   const [text, setText] = useState("");
   const [url, setUrl] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [analysis, setAnalysis] = useState<CheckAnalysis | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
@@ -27,12 +30,14 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
   const resultRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const urlRef = useRef<HTMLInputElement>(null);
+  const screenshotRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (pending) return;
     if (analysis) resultRef.current?.focus();
     else if (focusForm.current) {
       if (mode === "URL") urlRef.current?.focus();
+      else if (mode === "SCREENSHOT") screenshotRef.current?.focus();
       else textareaRef.current?.focus();
       focusForm.current = false;
     }
@@ -41,19 +46,24 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
   function newCheck() {
     setText("");
     setUrl("");
-    setMode("TEXT");
+    setFile(null);
+    if (mode !== "SCREENSHOT") setMode("TEXT");
     setError("");
     focusForm.current = true;
     setAnalysis(null);
   }
 
   async function runCheck() {
-    if (inFlight.current || mode === "SCREENSHOT") return;
+    if (inFlight.current || (mode === "SCREENSHOT" && !file)) return;
     inFlight.current = true;
     setPending(true);
     setError("");
     try {
-      const response = mode === "URL"
+      const upload = new FormData();
+      if (mode === "SCREENSHOT" && file) upload.set("file", file);
+      const response = mode === "SCREENSHOT"
+        ? await analyzeScreenshotAction(upload)
+        : mode === "URL"
         ? await analyzeUrlAction(url)
         : await analyzeTextAction(text);
       if (!response.ok) {
@@ -64,6 +74,7 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
         setAnalysis(response.analysis);
         if (response.analysis.status !== "FAILED") {
           if (mode === "URL") setUrl("");
+          else if (mode === "SCREENSHOT") setFile(null);
           else setText("");
         }
       }
@@ -78,17 +89,17 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (mode !== "SCREENSHOT") void runCheck();
+    void runCheck();
   }
 
-  const disabled = mode === "TEXT" ? !text.trim() : mode === "URL" ? !url.trim() : true;
+  const disabled = mode === "TEXT" ? !text.trim() : mode === "URL" ? !url.trim() : !file;
   const inputClass = "w-full rounded-lg border border-border bg-surface px-4 py-3 text-base text-foreground placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
   if (pending) {
     return (
       <div aria-busy="true">
         <CheckAnalysisState analysis={{ status: "ANALYZING", steps: [
-          { code: mode, title: mode === "URL" ? "Checking URL structure" : "Checking message", status: "CURRENT" },
+          { code: mode, title: mode === "SCREENSHOT" ? "Reading screenshot and checking its content" : mode === "URL" ? "Checking URL structure" : "Checking message", status: "CURRENT" },
         ] }} />
       </div>
     );
@@ -167,9 +178,11 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
         )}
 
         {mode === "SCREENSHOT" && (
-          <p role="status" className="rounded-xl border border-border bg-surface p-5 text-sm text-muted">
-            Screenshot analysis is coming soon. For now, paste an English message in Text mode or a link in Link mode.
-          </p>
+          <div ref={screenshotRef} tabIndex={-1} className="rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+            <p className="mb-2 text-sm text-muted">Screenshot text analysis currently supports English only.</p>
+            <ScreenshotInput file={file} onChange={(value) => { setFile(value); setError(""); }} />
+            {error && <p role="alert" className="mt-2 text-sm text-danger">{error}</p>}
+          </div>
         )}
 
         <p className="flex items-start justify-center gap-2 text-sm text-muted">

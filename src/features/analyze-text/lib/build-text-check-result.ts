@@ -2,6 +2,7 @@ import { calculateConfidence, type AnalysisSource } from "../../../entities/conf
 import type { CheckAnalysis, CheckResult, RecommendedAction } from "../../../entities/check/model/types";
 import type { DetectedSignal, RiskLevel, SignalCode } from "../../../entities/risk";
 import { analyzeText, type TextAnalysis } from "./analyze-text";
+import { supportsTextScript, hasUsefulText } from "./text-scope";
 
 export type TextCheckResponse =
   | { ok: false; error: string }
@@ -72,17 +73,14 @@ export function buildTextCheckResult(value: unknown): TextCheckResponse {
   // A script safeguard, not language identification: other Latin-script
   // languages cannot be distinguished from English here. Permit small amounts
   // of non-Latin text (e.g. a name), but require at least 80% Latin letters.
-  const letters = text.match(/\p{L}/gu) ?? [];
-  const latinLetters = letters.filter((letter) => /\p{Script=Latin}/u.test(letter)).length;
-  if (letters.length > 0 && latinLetters / letters.length < 0.8) {
+  if (!supportsTextScript(text)) {
     return { ok: true, analysis: { status: "INSUFFICIENT_DATA", reason: "UNSUPPORTED_LANGUAGE" } };
   }
 
   const analysis = analyzeText(text);
   // Conservative, explicit sufficiency rule: no detected evidence AND a tiny
   // fragment, fewer than two words, or no letters. Short real requests still count.
-  const words = text.match(/\p{L}+/gu) ?? [];
-  if (analysis.signals.length === 0 && (text.length < 10 || words.length < 2)) {
+  if (!hasUsefulText(text, analysis.signals.length)) {
     return { ok: true, analysis: { status: "INSUFFICIENT_DATA" } };
   }
   return { ok: true, analysis: { status: "COMPLETED", result: mapTextCheckResult(analysis) } };

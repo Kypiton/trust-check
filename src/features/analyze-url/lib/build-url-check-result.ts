@@ -1,11 +1,12 @@
-import { calculateConfidence, type AnalysisSource } from "../../../entities/confidence";
+import { calculateConfidence } from "../../../entities/confidence";
 import type { CheckAnalysis, CheckResult, RecommendedAction } from "../../../entities/check/model/types";
 import { calculateRisk, type DetectedSignal, type RiskCalculation, type RiskLevel, type SignalCode } from "../../../entities/risk";
-import { analyzeDomain, type DomainAnalysis } from "../../analyze-domain";
-import { analyzeReputation, currentReputationAnalysis, type ReputationAnalysis } from "../../analyze-reputation";
-import { analyzeRedirect, type RedirectAnalysis } from "../../analyze-redirect";
+import type { DomainAnalysis } from "../../analyze-domain";
+import type { ReputationAnalysis } from "../../analyze-reputation";
+import type { RedirectAnalysis } from "../../analyze-redirect";
 import { inspectUrl } from "./analyze-url";
 import { MAX_URL_INPUT_LENGTH } from "./limits";
+import { collectUrlEvidence, urlCoverage, type UrlEvidenceDependencies } from "./collect-url-evidence";
 
 export type UrlCheckResponse =
   | { ok: false; error: string }
@@ -103,12 +104,7 @@ export function mapUrlCheckResult(
   reputation: ReputationAnalysis,
   redirect: RedirectAnalysis,
 ): CheckResult {
-  const analysisCoverage: AnalysisSource[] = [
-    { code: "URL_STRUCTURE", status: "COMPLETED" },
-    { code: "DOMAIN_METADATA", status: domain.status === "UNAVAILABLE" ? "FAILED" : domain.status },
-    { code: "REDIRECT_ANALYSIS", status: redirect.status === "COMPLETED" ? "COMPLETED" : "FAILED" },
-    { code: reputation.source.code, status: reputation.source.status },
-  ];
+  const analysisCoverage = urlCoverage(domain, reputation, redirect);
   const confidence = calculateConfidence({ sources: analysisCoverage, signals: analysis.signals });
   const confirmedThreat = reputation.status === "COMPLETED" && analysis.signals.some(
     ({ code }) => code === "KNOWN_PHISHING_URL" || code === "KNOWN_MALICIOUS_URL",
@@ -142,11 +138,7 @@ export function mapUrlCheckResult(
 /** Combine real evidence before scoring; return display fields only. */
 export async function buildUrlCheckResult(
   value: unknown,
-  {
-    analyzeDomain: domainAnalyzer = analyzeDomain,
-    analyzeReputation: reputationAnalyzer = analyzeReputation,
-    analyzeRedirect: redirectAnalyzer = analyzeRedirect,
-  }: { analyzeDomain?: typeof analyzeDomain; analyzeReputation?: typeof analyzeReputation; analyzeRedirect?: typeof analyzeRedirect } = {},
+  dependencies: UrlEvidenceDependencies = {},
 ): Promise<UrlCheckResponse> {
   const invalid: UrlCheckResponse = { ok: false, error: "Enter a valid HTTP or HTTPS link." };
   if (typeof value !== "string") return invalid;
@@ -154,28 +146,8 @@ export async function buildUrlCheckResult(
   if (!value.trim()) return invalid;
   const analysis = inspectUrl(value.trim());
   if (!analysis.valid) return invalid;
-  // The domain feature owns applicability and registrable-domain resolution.
-  // IPs and hosts without a registrable domain return without a network lookup.
-  const [domain, reputationResult, redirect] = await Promise.all([
-    domainAnalyzer(analysis.hostname),
-    reputationAnalyzer(analysis.normalizedUrl),
-    redirectAnalyzer(analysis.normalizedUrl),
-  ]);
-  // The redirect result retains finalUrl internally. Do not restart enrichment
-  // on that destination or serialize the raw chain into the public result.
-  // Reputation may expire while waiting for RDAP or redirect analysis.
-  const reputation = currentReputationAnalysis(reputationResult);
-  const merged = [
-    ...analysis.signals,
-    ...(domain.status === "COMPLETED" ? domain.signals : []),
-    ...(reputation.status === "COMPLETED" ? reputation.signals : []),
-    ...(redirect.status === "COMPLETED" ? redirect.signals : []),
-  ];
-  const unique = new Map<SignalCode, DetectedSignal>();
-  for (const signal of merged) {
-    if (!unique.has(signal.code)) unique.set(signal.code, signal);
-  }
-  const signals = [...unique.values()];
+  const { signals, domain, reputation, redirect, unexpectedFailure } = await collectUrlEvidence(analysis, dependencies);
+  if (unexpectedFailure) throw new Error("URL evidence collection failed.");
   const risk = calculateRisk(signals);
   const result = mapUrlCheckResult({ signals, risk }, domain, reputation, redirect);
   // Optional unconfigured reputation remains SKIPPED. Only a

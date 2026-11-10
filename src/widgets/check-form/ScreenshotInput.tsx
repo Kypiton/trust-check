@@ -17,6 +17,8 @@ export function ScreenshotInput({ file, onChange }: { file: File | null; onChang
     const selected = files[0];
     const message = files.length > 1
       ? "Choose one screenshot at a time."
+      : selected.size === 0
+        ? "Choose a screenshot that isn't empty."
       : !supportedTypes.includes(selected.type)
         ? "Choose a PNG, JPG or WebP image."
         : selected.size > maxSize

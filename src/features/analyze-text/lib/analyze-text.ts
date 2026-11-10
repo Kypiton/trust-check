@@ -6,8 +6,13 @@ export type TextAnalysis = {
   risk: RiskCalculation;
 };
 
+/** Unscored evidence for application flows that merge several input sources. */
+export function inspectText(text: string): { signals: DetectedSignal[] } {
+  return { signals: detectTextSignals(text) };
+}
+
 /** English rule-based evidence only; input sufficiency and confidence belong upstream. */
 export function analyzeText(text: string): TextAnalysis {
-  const signals = detectTextSignals(text);
+  const { signals } = inspectText(text);
   return { signals, risk: calculateRisk(signals) };
 }
