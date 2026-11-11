@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DeleteCheckControl } from "@/features/delete-check/ui/DeleteCheckControl";
 import { notFound, redirect } from "next/navigation";
 import { getSession } from "@/shared/server/auth/session";
 import { getUserCheckById } from "@/entities/check/server/get-user-check-by-id";
@@ -32,7 +33,10 @@ export default async function CheckResultPage({ params }: { params: Promise<{ id
         {preview && <p className="mb-4 text-sm text-muted">Development preview — sample data.</p>}
         <nav aria-label="Result navigation" className="mb-6 flex items-center justify-between gap-4">
           <Link href="/history" className={linkClass}>← History</Link>
-          <Link href="/check" className={linkClass}>New check</Link>
+          <div className="flex items-center gap-4">
+            {!preview && <DeleteCheckControl mode="single" checkId={id} returnToHistory />}
+            <Link href="/check" className={linkClass}>New check</Link>
+          </div>
         </nav>
         <CheckAnalysisState analysis={analysis} />
       </div>

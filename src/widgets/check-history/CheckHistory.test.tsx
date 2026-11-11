@@ -1,11 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { CheckHistory } from "./CheckHistory";
 import type { CheckHistoryItem } from "@/entities/check/server/get-user-check-history";
 const item: CheckHistoryItem = { id: "check-id", inputType: "TEXT", status: "COMPLETED", riskLevel: "LOW", riskScore: 10, confidence: "LOW", createdAt: new Date("2026-11-11T00:30:00Z") };
 const render = (items: CheckHistoryItem[]) => renderToStaticMarkup(<CheckHistory checks={items} />);
 it("renders the empty state and actions to the public Check page", () => {
-  const html = render([]); expect(html).toContain("No checks yet"); expect(html).toContain("Your saved analyses will appear here after you check a message, link, or screenshot."); expect(html).toContain("Start a check"); expect(html).toContain('href="/check"');
+  const html = render([]); expect(html).toContain("No checks yet"); expect(html).not.toContain("Clear history"); expect(html).toContain("Your saved analyses will appear here after you check a message, link, or screenshot."); expect(html).toContain("Start a check"); expect(html).toContain('href="/check"');
 });
 it.each([["TEXT", "Text"], ["URL", "Link"], ["SCREENSHOT", "Screenshot"]] as const)("maps %s to %s", (inputType, label) => {
   expect(render([{ ...item, inputType }])).toContain(`>${label}</dd>`);
@@ -32,4 +32,12 @@ it("provides a desktop grid and mobile definition lists without a wide table and
 it("preserves query ordering", () => {
   const html = render([{ ...item, id: "new", inputType: "SCREENSHOT" }, { ...item, id: "old", inputType: "URL" }]);
   expect(html.indexOf(">Screenshot</dd>")).toBeLessThan(html.indexOf(">Link</dd>"));
+});
+
+vi.mock("@/features/delete-check/ui/DeleteCheckControl", () => ({
+  DeleteCheckControl: ({ mode }: { mode: string }) => mode === "all" ? "Clear history" : "Delete check",
+}));
+
+it("offers clear-history and per-row deletion only for nonempty History", () => {
+  const html = render([item]); expect(html).toContain("Clear history"); expect(html).toContain("Delete check"); expect(html).toContain('href="/account/privacy"');
 });

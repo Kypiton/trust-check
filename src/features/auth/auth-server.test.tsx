@@ -25,3 +25,7 @@ it("renders identity without passing a session token to Header UI", async () => 
   const element = await Header(); const html = renderToStaticMarkup(element);
   expect(html).toContain("Dummy"); expect(html).toContain("Sign out"); expect(html).not.toContain("private-session-token");
 });
+
+vi.mock("@/features/delete-check/ui/DeleteCheckControl", () => ({
+  DeleteCheckControl: ({ mode }: { mode: string }) => mode === "all" ? "Clear history" : "Delete check",
+}));

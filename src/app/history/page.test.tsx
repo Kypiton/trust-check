@@ -22,3 +22,7 @@ it("lets query failures reach the generic route error boundary", async () => {
   mocks.session.mockResolvedValue({ user: { id: "user-a" } }); mocks.query.mockRejectedValue(new Error("Unable to load check history."));
   await expect(HistoryPage()).rejects.toThrow("Unable to load check history.");
 });
+
+vi.mock("@/features/delete-check/ui/DeleteCheckControl", () => ({
+  DeleteCheckControl: ({ mode }: { mode: string }) => mode === "all" ? "Clear history" : "Delete check",
+}));

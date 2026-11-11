@@ -20,13 +20,13 @@ it("redirects anonymous users without reading a Check", async () => {
 });
 it.each(["COMPLETED", "PARTIAL"])("renders owned %s data through the existing result UI", async status => {
   mocks.query.mockResolvedValue({ ...row, status }); const html = renderToStaticMarkup(await page("check-id"));
-  expect(mocks.query).toHaveBeenCalledExactlyOnceWith("user-a", "check-id"); expect(html).toContain("Historical assessment."); expect(html).toContain("Be Careful"); expect(html).toContain("47"); expect(html).toContain("Low confidence"); expect(html).toContain('href="/history"'); expect(html).not.toContain("Development preview");
+  expect(mocks.query).toHaveBeenCalledExactlyOnceWith("user-a", "check-id"); expect(html).toContain("Historical assessment."); expect(html).toContain("Delete check"); expect(html).toContain("Be Careful"); expect(html).toContain("47"); expect(html).toContain("Low confidence"); expect(html).toContain('href="/history"'); expect(html).not.toContain("Development preview");
   if (status === "PARTIAL") expect(html).toContain("Some checks were unavailable");
 });
 it.each(["missing", "owned-by-b", "arbitrary-id"])("uses the same 404 for inaccessible %s", async id => { await expect(page(id)).rejects.toThrow("NOT_FOUND"); });
 it.each(["high", "medium", "low", "loading", "error", "insufficient", "partial"])("never renders preview %s in production", async id => { await expect(page(id)).rejects.toThrow("NOT_FOUND"); expect(mocks.query).toHaveBeenCalledWith("user-a", id); });
 it.each(["high", "medium", "low", "loading", "error", "insufficient", "partial"])("allows explicit preview %s only in development", async id => {
-  vi.stubEnv("NODE_ENV", "development"); const html = renderToStaticMarkup(await page(id)); expect(html).toContain("Development preview — sample data."); expect(mocks.session).not.toHaveBeenCalled(); expect(mocks.query).not.toHaveBeenCalled();
+  vi.stubEnv("NODE_ENV", "development"); const html = renderToStaticMarkup(await page(id)); expect(html).toContain("Development preview — sample data."); expect(html).not.toContain("Delete check"); expect(mocks.session).not.toHaveBeenCalled(); expect(mocks.query).not.toHaveBeenCalled();
 });
 it("unknown development IDs query persisted data rather than falling back to a fixture", async () => {
   vi.stubEnv("NODE_ENV", "development"); await expect(page("unknown")).rejects.toThrow("NOT_FOUND"); expect(mocks.query).toHaveBeenCalledWith("user-a", "unknown");
@@ -36,3 +36,7 @@ it("does not run engines, enrichments, OCR or fixture initialization for persist
   mocks.query.mockResolvedValue(row); await page("real-check");
   for (const operation of [mocks.risk, mocks.confidence, mocks.rdap, mocks.reputation, mocks.redirects, mocks.ocr]) expect(operation).not.toHaveBeenCalled();
 });
+
+vi.mock("@/features/delete-check/ui/DeleteCheckControl", () => ({
+  DeleteCheckControl: ({ mode }: { mode: string }) => mode === "all" ? "Clear history" : "Delete check",
+}));

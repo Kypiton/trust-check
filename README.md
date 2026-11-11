@@ -47,7 +47,14 @@ payloads. History rows open authenticated saved results at `/check/[id]`. Each d
 filters by both Check ID and session user ID. Stored JSON is validated before
 rendering; historical scores and confidence are never recalculated. Missing or
 other-user checks share the same 404 behavior. Known sample IDs work only in
-development. Pagination and deletion are not implemented yet.
+development. Pagination is not implemented yet.
+
+Saved checks can be permanently deleted individually from History or a saved
+result, or cleared together from History and `/account/privacy`. Each action
+requires confirmation and a validated session, and the database deletion is
+scoped to that user. Missing and other-user IDs return the same unavailable
+outcome. Deletion removes saved results from the application database while
+keeping accounts and sign-in sessions.
 
 ### Analysis persistence
 
