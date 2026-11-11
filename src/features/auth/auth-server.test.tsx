@@ -5,6 +5,7 @@ import HistoryPage from "@/app/history/page";
 
 const mocks = vi.hoisted(() => ({ session: vi.fn(), redirect: vi.fn((path: string) => { throw new Error(`redirect:${path}`); }) }));
 vi.mock("@/shared/server/auth/session", () => ({ getSession: mocks.session }));
+vi.mock("@/entities/check/server/get-user-check-history", () => ({ getUserCheckHistory: vi.fn(async () => []) }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
 vi.mock("@/widgets/header/HeaderNav", () => ({ HeaderNav: () => null }));
 vi.mock("@/widgets/header/ThemeToggle", () => ({ ThemeToggle: () => null }));

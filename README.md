@@ -40,8 +40,10 @@ above before using authentication.
 Passwords must contain at least 10 characters. Better Auth handles password
 hashing and database-backed sessions. `/history` requires a validated session;
 `/check` remains public. Sign-up, sign-in, and sign-out return to `/check`.
-Email verification and password reset are not enabled yet. History data is not
-queried or displayed yet.
+Email verification and password reset are not enabled yet. History displays only
+the authenticated user's latest 50 checks, newest first, with dates in UTC.
+The list selects lightweight assessment metadata and does not load result JSON
+payloads. Check detail links, pagination, and deletion are not implemented yet.
 
 ### Analysis persistence
 
