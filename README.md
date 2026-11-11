@@ -27,6 +27,21 @@ Host port 5433 must be available. `docker compose ps` shows database health.
 volume stays outside the repository; do not remove it if you want to keep data.
 The `Check` schema stores result metadata only. Live analysis does not write checks yet.
 
+### Local authentication
+
+Better Auth provides email/password registration at `/register` and sign-in at
+`/login`. Set `BETTER_AUTH_URL="http://localhost:3000"` and a cryptographically
+random `BETTER_AUTH_SECRET` of at least 32 bytes in the ignored `.env.local`.
+Keep the secret stable between restarts and never commit it. `.env.example`
+contains only empty placeholders. Apply the existing migrations with the command
+above before using authentication.
+
+Passwords must contain at least 10 characters. Better Auth handles password
+hashing and database-backed sessions. `/history` requires a validated session;
+`/check` remains public. Sign-up, sign-in, and sign-out return to `/check`.
+Email verification and password reset are not enabled yet. Authentication does
+not save analysis results or query History data.
+
 First, run the development server:
 
 ```bash

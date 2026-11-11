@@ -1,7 +1,5 @@
+import { AuthForm } from "@/features/auth/ui/AuthForm";
+
 export default function LoginPage() {
-  return (
-    <main className="bg-background text-foreground">
-      <h1>Sign in</h1>
-    </main>
-  );
+  return <AuthForm mode="login" />;
 }
