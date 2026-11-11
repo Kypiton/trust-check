@@ -42,7 +42,8 @@ export function CheckHistory({ checks }: { checks: readonly CheckHistoryItem[] }
                   const risk = check.riskLevel ? riskStyles[check.riskLevel] : undefined;
                   const validDate = Number.isFinite(check.createdAt.getTime());
                   return (
-                    <li key={check.id} className="px-4 py-5 md:px-5 md:py-4">
+                    <li key={check.id}>
+                      <Link href={`/check/${encodeURIComponent(check.id)}`} className="block px-4 py-5 transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary md:px-5 md:py-4">
                       <dl className={`grid grid-cols-2 items-start gap-x-4 gap-y-4 text-sm md:items-center ${columns}`}>
                         <div className="min-w-0"><dt className="sr-only">Type</dt><dd className="font-semibold">{inputLabels[check.inputType] ?? "Unknown type"}</dd></div>
                         <div className="min-w-0"><dt className="sr-only">Risk</dt><dd><span className={`inline-block rounded-md px-2 py-1 text-xs font-medium ${risk?.className ?? "bg-surface-secondary text-muted"}`}>{risk?.label ?? "Risk unavailable"}</span></dd></div>
@@ -51,6 +52,7 @@ export function CheckHistory({ checks }: { checks: readonly CheckHistoryItem[] }
                         <div className="min-w-0"><dt className="sr-only">Status</dt><dd className="text-muted">{statusLabels[check.status] ?? "Status unavailable"}</dd></div>
                         <div className="min-w-0"><dt className="sr-only">Date</dt><dd className="text-muted">{validDate ? <time dateTime={check.createdAt.toISOString()}>{dateFormatter.format(check.createdAt)}</time> : "Date unavailable"}</dd></div>
                       </dl>
+                      </Link>
                     </li>
                   );
                 })}

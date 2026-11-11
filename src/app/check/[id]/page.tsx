@@ -1,21 +1,39 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getMockAnalysis } from "@/entities/check/model/mock-result";
+import { notFound, redirect } from "next/navigation";
+import { getSession } from "@/shared/server/auth/session";
+import { getUserCheckById } from "@/entities/check/server/get-user-check-by-id";
+import { parsePersistedCheck } from "@/entities/check/lib/parse-persisted-check";
+import type { CheckAnalysis } from "@/entities/check/model/types";
 import { CheckAnalysisState } from "@/widgets/check-result";
 
+const previewIds = new Set(["high", "medium", "low", "loading", "error", "insufficient", "partial"]);
+const linkClass = "inline-flex min-h-11 items-center rounded-md text-sm font-medium text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+
 export default async function CheckResultPage({ params }: { params: Promise<{ id: string }> }) {
-  if (process.env.NODE_ENV !== "development") notFound();
   const { id } = await params;
-  const analysis = getMockAnalysis(id);
-  if (!analysis) notFound();
+  let analysis: CheckAnalysis;
+  const preview = process.env.NODE_ENV === "development" && previewIds.has(id);
+  if (preview) {
+    // Lazy import keeps fixture initialization out of persisted result requests.
+    const { getMockAnalysis } = await import("@/entities/check/model/mock-result");
+    const fixture = getMockAnalysis(id);
+    if (!fixture) notFound();
+    analysis = fixture;
+  } else {
+    const session = await getSession();
+    if (!session) redirect("/login");
+    const row = await getUserCheckById(session.user.id, id);
+    if (!row) notFound();
+    analysis = parsePersistedCheck(row);
+  }
   return (
     <main className="w-full flex-1 bg-background px-4 py-8 text-foreground md:px-6 md:py-10 xl:px-8">
       <div className="mx-auto w-full max-w-[var(--tc-result-max)]">
-        <p className="mb-4 text-sm text-muted">Development preview — sample data.</p>
-        <Link href="/check" className="mb-6 inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-          <svg aria-hidden="true" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="m12 5-7 7 7 7M5 12h14" /></svg>
-          New check
-        </Link>
+        {preview && <p className="mb-4 text-sm text-muted">Development preview — sample data.</p>}
+        <nav aria-label="Result navigation" className="mb-6 flex items-center justify-between gap-4">
+          <Link href="/history" className={linkClass}>← History</Link>
+          <Link href="/check" className={linkClass}>New check</Link>
+        </nav>
         <CheckAnalysisState analysis={analysis} />
       </div>
     </main>

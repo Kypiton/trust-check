@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CheckAnalysis, CheckResult } from "../model/types";
 import { persistCheck } from "./persist-check";
+import { parsePersistedCheck } from "../lib/parse-persisted-check";
 import { buildTextCheckResult } from "@/features/analyze-text/lib/build-text-check-result";
 import { buildUrlCheckResult } from "@/features/analyze-url/lib/build-url-check-result";
 import { buildScreenshotCheckResult } from "@/features/analyze-screenshot/lib/build-screenshot-check-result";
@@ -91,4 +92,10 @@ describe("real builder privacy contract", () => {
     expect(json).not.toContain("PRIVATE_"); expect(json).not.toContain("bytes"); expect(json).not.toContain("ocrConfidence");
     expect(mocks.create.mock.calls[0][0].data.signals.length).toBeGreaterThan(0);
   });
+});
+
+it("round-trips persisted application metadata into the same historical presentation", async () => {
+  await persistCheck("session-user", "TEXT", { status: "PARTIAL", result });
+  const row = mocks.create.mock.calls[0][0].data;
+  expect(parsePersistedCheck(row)).toEqual({ status: "PARTIAL", result });
 });

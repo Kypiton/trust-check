@@ -26,8 +26,8 @@ it("handles incomplete assessment metadata without inventing a low score", () =>
 it("uses deterministic UTC dates and semantic time elements", () => {
   const html = render([item]); expect(html).toContain("Nov 11, 2026"); expect(html).toContain('dateTime="2026-11-11T00:30:00.000Z"'); expect(html).toContain("Dates in UTC");
 });
-it("provides a desktop grid and mobile definition lists without a wide table or detail links", () => {
-  const html = render([item]); expect(html).toContain("md:grid-cols-"); expect(html).toContain("grid-cols-2"); expect(html).toContain("<ul"); expect(html).toContain("<dl"); expect(html).toContain("<dt"); expect(html).not.toContain("<table"); expect(html).not.toContain('href="/check/'); expect(html).not.toContain("overflow-x-auto");
+it("provides a desktop grid and mobile definition lists without a wide table and with an accessible whole-row detail link", () => {
+  const html = render([item]); expect(html).toContain("md:grid-cols-"); expect(html).toContain("grid-cols-2"); expect(html).toContain("<ul"); expect(html).toContain("<dl"); expect(html).toContain("<dt"); expect(html).not.toContain("<table"); expect(html).toContain('href="/check/check-id"'); expect(html).toContain("focus-visible:outline-primary"); expect(html).not.toContain("overflow-x-auto");
 });
 it("preserves query ordering", () => {
   const html = render([{ ...item, id: "new", inputType: "SCREENSHOT" }, { ...item, id: "old", inputType: "URL" }]);

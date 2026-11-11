@@ -43,7 +43,11 @@ hashing and database-backed sessions. `/history` requires a validated session;
 Email verification and password reset are not enabled yet. History displays only
 the authenticated user's latest 50 checks, newest first, with dates in UTC.
 The list selects lightweight assessment metadata and does not load result JSON
-payloads. Check detail links, pagination, and deletion are not implemented yet.
+payloads. History rows open authenticated saved results at `/check/[id]`. Each detail query
+filters by both Check ID and session user ID. Stored JSON is validated before
+rendering; historical scores and confidence are never recalculated. Missing or
+other-user checks share the same 404 behavior. Known sample IDs work only in
+development. Pagination and deletion are not implemented yet.
 
 ### Analysis persistence
 
