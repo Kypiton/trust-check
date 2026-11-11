@@ -1,0 +1,21 @@
+# Local development only; these credentials are not for production.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: trustcheck
+      POSTGRES_USER: trustcheck
+      POSTGRES_PASSWORD: trustcheck_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trustcheck -d trustcheck"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  postgres_data:

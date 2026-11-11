@@ -1,0 +1,2 @@
+# This file should be committed to version control.
+provider = "postgresql"

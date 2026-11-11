@@ -2,6 +2,31 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Local PostgreSQL
+
+The development database uses PostgreSQL 17 Alpine in Docker with a named volume
+so data survives container restarts. The credentials below are for local use only.
+
+Set this value in the Git-ignored `.env.local`, preserving any existing settings:
+
+```dotenv
+DATABASE_URL="postgresql://trustcheck:trustcheck_dev@localhost:5433/trustcheck"
+```
+
+Start Docker, then run:
+
+```bash
+docker compose up -d --wait --wait-timeout 60
+npx prisma migrate deploy
+npx prisma validate
+npx prisma generate
+```
+
+Host port 5433 must be available. `docker compose ps` shows database health.
+`docker compose stop` stops PostgreSQL without deleting its data. The named
+volume stays outside the repository; do not remove it if you want to keep data.
+The `Check` schema stores result metadata only. Live analysis does not write checks yet.
+
 First, run the development server:
 
 ```bash
