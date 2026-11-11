@@ -25,7 +25,8 @@ npx prisma generate
 Host port 5433 must be available. `docker compose ps` shows database health.
 `docker compose stop` stops PostgreSQL without deleting its data. The named
 volume stays outside the repository; do not remove it if you want to keep data.
-The `Check` schema stores result metadata only. Live analysis does not write checks yet.
+The `Check` schema stores result metadata only. Authenticated analyses save their
+completed or partial assessments; anonymous analyses are never saved.
 
 ### Local authentication
 
@@ -39,8 +40,21 @@ above before using authentication.
 Passwords must contain at least 10 characters. Better Auth handles password
 hashing and database-backed sessions. `/history` requires a validated session;
 `/check` remains public. Sign-up, sign-in, and sign-out return to `/check`.
-Email verification and password reset are not enabled yet. Authentication does
-not save analysis results or query History data.
+Email verification and password reset are not enabled yet. History data is not
+queried or displayed yet.
+
+### Analysis persistence
+
+Text, Link, and Screenshot Server Actions save final `COMPLETED` and `PARTIAL`
+assessments once, using the server-validated session for ownership. The server-only
+Check persistence layer explicitly maps display metadata into Prisma JSON fields;
+the optional analysis note is stored as an array in `analysisNotes`. Submitted
+content, images, filenames, OCR text, raw URLs, and provider responses are excluded.
+Validation errors, failed analyses, and insufficient-data results are not saved.
+
+A successful write adds only `persistedCheckId` to the action response. Session
+lookup or storage failures leave the valid analysis intact without an ID. The UI
+does not redirect or change its presentation when a Check is saved.
 
 First, run the development server:
 

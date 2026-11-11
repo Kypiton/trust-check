@@ -53,3 +53,8 @@ describe("Screenshot Server Action upload boundary", () => {
     loggers.forEach((logger) => expect(logger).not.toHaveBeenCalled());
   });
 });
+
+// Keep existing engine/orchestration tests independent of session/database state.
+vi.mock("@/entities/check/server", () => ({
+  persistAnalysisResponse: vi.fn(async (_inputType: string, response: unknown) => response),
+}));

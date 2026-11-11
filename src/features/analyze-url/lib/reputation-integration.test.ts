@@ -293,3 +293,8 @@ describe("real Link flow with reputation enrichment", () => {
     expect(providerFetch).not.toHaveBeenCalled();
   });
 });
+
+// Persistence is verified separately; keep provider integration tests database-free.
+vi.mock("@/entities/check/server", () => ({
+  persistAnalysisResponse: vi.fn(async (_inputType: string, response: unknown) => response),
+}));

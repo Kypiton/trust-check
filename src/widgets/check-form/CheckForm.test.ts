@@ -138,3 +138,19 @@ describe("existing Text and Link interactions", () => {
     expect(container.textContent).toContain("Text analysis currently supports English only.");
   });
 });
+
+it("does not resubmit an in-flight analysis after repeated submit events or a rerender", async () => {
+  let finish!: (value: ScreenshotCheckResponse) => void;
+  vi.mocked(analyzeScreenshotAction).mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  await click("Screenshot");
+  await select();
+  const form = container.querySelector("form")!;
+  await act(async () => {
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+  await act(async () => root.render(createElement(CheckForm)));
+  expect(analyzeScreenshotAction).toHaveBeenCalledOnce();
+  await act(async () => finish(completed));
+  expect(analyzeScreenshotAction).toHaveBeenCalledOnce();
+});

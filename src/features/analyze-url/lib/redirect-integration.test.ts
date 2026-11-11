@@ -301,3 +301,8 @@ describe("Link pipeline through the real safe HTTP boundary", () => {
     for (const log of logs) expect(log).not.toHaveBeenCalled();
   });
 });
+
+// Persistence is verified separately; keep provider integration tests database-free.
+vi.mock("@/entities/check/server", () => ({
+  persistAnalysisResponse: vi.fn(async (_inputType: string, response: unknown) => response),
+}));

@@ -15,7 +15,7 @@ import type { ScreenshotFailureReason, ScreenshotInput, ScreenshotPreparation, S
 export const MAX_SCREENSHOT_ANALYZED_URLS = 3;
 export type ScreenshotCheckResponse =
   | { ok: false; error: string }
-  | { ok: true; analysis: Exclude<CheckAnalysis, { status: "ANALYZING" }> };
+  | { ok: true; analysis: Exclude<CheckAnalysis, { status: "ANALYZING" }>; persistedCheckId?: string };
 
 const summaries: Record<RiskLevel, string> = {
   LOW: "No strong signs of fraud were detected in the readable screenshot content.",

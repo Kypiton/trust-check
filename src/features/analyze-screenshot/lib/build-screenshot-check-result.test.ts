@@ -234,3 +234,8 @@ it("runs real FormData action → preparation → local OCR → Text evidence �
     expect(fetch).not.toHaveBeenCalled();
   } finally { await extractor.close(); }
 }, 30_000);
+
+// Keep existing engine/orchestration tests independent of session/database state.
+vi.mock("@/entities/check/server", () => ({
+  persistAnalysisResponse: vi.fn(async (_inputType: string, response: unknown) => response),
+}));

@@ -407,3 +407,8 @@ describe("RDAP degradation and async failures", () => {
     expect(risk).not.toHaveBeenCalled();
   });
 });
+
+// Keep existing engine/orchestration tests independent of session/database state.
+vi.mock("@/entities/check/server", () => ({
+  persistAnalysisResponse: vi.fn(async (_inputType: string, response: unknown) => response),
+}));

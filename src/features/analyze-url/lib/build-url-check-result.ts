@@ -10,7 +10,7 @@ import { collectUrlEvidence, urlCoverage, type UrlEvidenceDependencies } from ".
 
 export type UrlCheckResponse =
   | { ok: false; error: string }
-  | { ok: true; analysis: Exclude<CheckAnalysis, { status: "ANALYZING" }> };
+  | { ok: true; analysis: Exclude<CheckAnalysis, { status: "ANALYZING" }>; persistedCheckId?: string };
 
 const summaries: Record<RiskLevel, string> = {
   LOW: "No strong suspicious URL patterns were detected.",

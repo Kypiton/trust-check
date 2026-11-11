@@ -159,3 +159,8 @@ describe("server action boundary and privacy", () => {
     expect(JSON.stringify(error.mock.calls)).not.toContain(secret);
   });
 });
+
+// Keep existing engine/orchestration tests independent of session/database state.
+vi.mock("@/entities/check/server", () => ({
+  persistAnalysisResponse: vi.fn(async (_inputType: string, response: unknown) => response),
+}));

@@ -6,7 +6,7 @@ import { supportsTextScript, hasUsefulText } from "./text-scope";
 
 export type TextCheckResponse =
   | { ok: false; error: string }
-  | { ok: true; analysis: Exclude<CheckAnalysis, { status: "ANALYZING" }> };
+  | { ok: true; analysis: Exclude<CheckAnalysis, { status: "ANALYZING" }>; persistedCheckId?: string };
 
 const summaries: Record<RiskLevel, string> = {
   LOW: "No strong signs of fraud were detected.",
