@@ -2,6 +2,7 @@ import { Worker } from "node:worker_threads";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { OcrOutput, OcrWorker } from "./ocr-adapter";
+import type { ScreenshotOcrLanguage } from "../model/types";
 
 const WORKER_OPERATION_TIMEOUT_MS = 30_000;
 
@@ -10,12 +11,13 @@ const WORKER_OPERATION_TIMEOUT_MS = 30_000;
  * terminated, even before Tesseract's createWorker() returns its worker handle.
  * Tesseract's inner worker is reused; one supervisor/engine pair exists at most.
  */
-export async function createTesseractOcrWorker(): Promise<OcrWorker> {
+export async function createTesseractOcrWorker(language: ScreenshotOcrLanguage = "eng"): Promise<OcrWorker> {
   // This entry runs as native CommonJS, not as a Next.js-bundled worker chunk.
   // next.config.ts traces it and its local runtime/model assets for deployment.
   const thread = new Worker(pathToFileURL(resolve(process.cwd(), "src/features/analyze-screenshot/lib/tesseract-worker.cjs")), {
     stdout: true,
     stderr: true,
+    workerData: { language },
   });
   // Do not forward SDK/native diagnostics that could contain recognized data.
   thread.stdout.resume();

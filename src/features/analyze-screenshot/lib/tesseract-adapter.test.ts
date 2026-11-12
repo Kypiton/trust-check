@@ -34,7 +34,7 @@ describe("local OCR thread ownership", () => {
   it("uses the local worker entry and drains SDK output without forwarding it", async () => {
     const { worker, thread } = await ready();
     expect(thread.url.pathname).toMatch(/tesseract-worker\.cjs$/);
-    expect(thread.options).toEqual({ stdout: true, stderr: true });
+    expect(thread.options).toEqual({ stdout: true, stderr: true, workerData: { language: "eng" } });
     expect(thread.stdout.resume).toHaveBeenCalledOnce();
     expect(thread.stderr.resume).toHaveBeenCalledOnce();
     expect(thread.unref).toHaveBeenCalled();
@@ -46,6 +46,15 @@ describe("local OCR thread ownership", () => {
     await worker.terminate();
     await worker.terminate();
     expect(thread.terminate).toHaveBeenCalledOnce();
+  });
+
+  it("passes the requested OCR language to the local worker", async () => {
+    const initializing = createTesseractOcrWorker("rus");
+    const thread = state.threads[0];
+    expect(thread.options).toEqual({ stdout: true, stderr: true, workerData: { language: "rus" } });
+    thread.emit("message", { type: "ready" });
+    const worker = await initializing;
+    await worker.terminate();
   });
 
   it("rejects URL/string image inputs before sending to the engine", async () => {

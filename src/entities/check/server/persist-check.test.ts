@@ -11,7 +11,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/shared/server/db/prisma", () => ({ getPrismaClient: () => ({ check: { create: mocks.create } }) }));
 const result: CheckResult = {
   riskLevel: "MEDIUM", riskScore: 42, confidence: "LOW", summary: "Some suspicious signs were detected.",
-  analysisNote: "Text analysis currently supports English only.",
+  analysisNote: "Text analysis supports English and Russian.",
   signals: [{ code: "OTP_REQUEST", title: "Verification code requested", description: "A verification code is requested." }],
   recommendedActions: [{ code: "PROTECT_CODES", title: "Do not share verification codes" }],
   analysisCoverage: [{ code: "TEXT_HEURISTICS", status: "COMPLETED" }],

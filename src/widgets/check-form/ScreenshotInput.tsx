@@ -1,11 +1,14 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { useLocale } from "@/shared/i18n/LocaleProvider";
 
 const supportedTypes = ["image/png", "image/jpeg", "image/webp"];
 const maxSize = 10 * 1024 * 1024;
 
 export function ScreenshotInput({ file, onChange }: { file: File | null; onChange: (file: File | null) => void }) {
+  const locale = useLocale();
+  const ru = locale === "ru";
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
@@ -16,13 +19,13 @@ export function ScreenshotInput({ file, onChange }: { file: File | null; onChang
     if (!files?.length) return;
     const selected = files[0];
     const message = files.length > 1
-      ? "Choose one screenshot at a time."
+      ? (ru ? "Выберите один скриншот за раз." : "Choose one screenshot at a time.")
       : selected.size === 0
-        ? "Choose a screenshot that isn't empty."
+        ? (ru ? "Выберите непустой скриншот." : "Choose a screenshot that isn't empty.")
       : !supportedTypes.includes(selected.type)
-        ? "Choose a PNG, JPG or WebP image."
+        ? (ru ? "Выберите изображение PNG, JPG или WebP." : "Choose a PNG, JPG or WebP image.")
         : selected.size > maxSize
-          ? "Choose an image no larger than 10 MB."
+          ? (ru ? "Выберите изображение размером не более 10 МБ." : "Choose an image no larger than 10 MB.")
           : "";
     setError(message);
     onChange(message ? null : selected);
@@ -46,8 +49,8 @@ export function ScreenshotInput({ file, onChange }: { file: File | null; onChang
           </div>
         ) : (
           <div>
-            <p className="font-medium text-foreground">Drop a screenshot here</p>
-            <p id={`${id}-hint`} className="mt-1 text-sm text-muted">PNG, JPG or WebP — up to 10 MB</p>
+            <p className="font-medium text-foreground">{ru ? "Перетащите скриншот сюда" : "Drop a screenshot here"}</p>
+            <p id={`${id}-hint`} className="mt-1 text-sm text-muted">{ru ? "PNG, JPG или WebP — до 10 МБ" : "PNG, JPG or WebP — up to 10 MB"}</p>
           </div>
         )}
         <input
@@ -56,15 +59,15 @@ export function ScreenshotInput({ file, onChange }: { file: File | null; onChang
           type="file"
           hidden
           accept="image/png,image/jpeg,image/webp"
-          aria-label="Choose a screenshot"
+          aria-label={ru ? "Выбрать скриншот" : "Choose a screenshot"}
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : !file ? `${id}-hint` : undefined}
           onChange={(event) => selectFile(event.target.files)}
         />
         {file ? (
-          <button type="button" onClick={() => { onChange(null); setError(""); }} className="min-h-11 rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Remove</button>
+          <button type="button" onClick={() => { onChange(null); setError(""); }} className="min-h-11 rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{ru ? "Удалить" : "Remove"}</button>
         ) : (
-          <button type="button" onClick={() => inputRef.current?.click()} aria-describedby={error ? `${id}-error` : `${id}-hint`} className="min-h-11 rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Choose file</button>
+          <button type="button" onClick={() => inputRef.current?.click()} aria-describedby={error ? `${id}-error` : `${id}-hint`} className="min-h-11 rounded-md border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{ru ? "Выбрать файл" : "Choose file"}</button>
         )}
       </div>
       {error && <p id={`${id}-error`} role="alert" className="mt-2 text-sm text-danger">{error}</p>}

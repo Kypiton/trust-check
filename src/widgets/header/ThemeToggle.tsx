@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { useLocale } from "@/shared/i18n/LocaleProvider";
 
 function subscribe(onChange: () => void) {
   const observer = new MutationObserver(onChange);
@@ -12,6 +13,7 @@ function subscribe(onChange: () => void) {
 }
 
 export function ThemeToggle() {
+  const locale = useLocale();
   const isDark = useSyncExternalStore(
     subscribe,
     () => document.documentElement.classList.contains("dark"),
@@ -31,7 +33,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={toggleTheme}
-      aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+      aria-label={isDark ? (locale === "ru" ? "Включить светлую тему" : "Switch to light theme") : (locale === "ru" ? "Включить тёмную тему" : "Switch to dark theme")}
       className="inline-flex size-10 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
       <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">

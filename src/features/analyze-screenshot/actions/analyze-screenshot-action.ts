@@ -15,9 +15,10 @@ export async function analyzeScreenshotAction(formData: FormData): Promise<Scree
     if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) return { ok: false, error: "Choose a PNG, JPG or WebP image." };
     if (!file.size) return { ok: false, error: "Choose a screenshot that isn't empty." };
     if (file.size > MAX_SCREENSHOT_BYTES) return { ok: false, error: "Choose an image no larger than 10 MiB." };
+    const language = formData.get("language") === "ru" ? "rus" : "eng";
     const blocked = await checkAnalysisRateLimit("SCREENSHOT");
     if (blocked) return blocked;
-    const response = await buildScreenshotCheckResult({ bytes: new Uint8Array(await file.arrayBuffer()), declaredMimeType: file.type });
+    const response = await buildScreenshotCheckResult({ bytes: new Uint8Array(await file.arrayBuffer()), declaredMimeType: file.type, ocrLanguage: language });
     return await persistAnalysisResponse("SCREENSHOT", response);
   } catch {
     // Never include errors, filenames, pixels, text or URLs in diagnostics.

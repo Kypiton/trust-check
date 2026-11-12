@@ -1,11 +1,14 @@
 export type ScreenshotFormat = "png" | "jpeg" | "webp";
 export type ScreenshotMimeType = "image/png" | "image/jpeg" | "image/webp";
+export type ScreenshotOcrLanguage = "eng" | "rus";
 
 export type ScreenshotInput = {
   bytes: Uint8Array;
   declaredMimeType: string;
   /** Informational only; never used to select a decoder or retained. */
   filename?: string;
+  /** OCR language selected by the user interface. Defaults to English. */
+  ocrLanguage?: ScreenshotOcrLanguage;
 };
 
 export type NormalizedScreenshot = {

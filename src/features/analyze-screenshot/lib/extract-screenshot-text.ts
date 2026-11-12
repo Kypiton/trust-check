@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import type { NormalizedScreenshot, ScreenshotTextExtraction } from "../model/types";
+import type { NormalizedScreenshot, ScreenshotOcrLanguage, ScreenshotTextExtraction } from "../model/types";
 import type { OcrWorker, OcrWorkerFactory } from "./ocr-adapter";
 import { isPreparedImage } from "./prepared-image";
 import { createTesseractOcrWorker } from "./tesseract-adapter";
@@ -22,6 +22,7 @@ function normalizeOutput(text: string): { text: string; truncated: boolean } {
 /** Isolated manager for tests/shutdown; application calls use the singleton. */
 export function createScreenshotTextExtractor({ createWorker = createTesseractOcrWorker }: { createWorker?: OcrWorkerFactory } = {}) {
   let worker: OcrWorker | undefined;
+  let workerLanguage: ScreenshotOcrLanguage | undefined;
   let active = false;
   let closed = false;
   let closePromise: Promise<void> | undefined;
@@ -31,10 +32,11 @@ export function createScreenshotTextExtractor({ createWorker = createTesseractOc
   async function discardWorker() {
     const previous = worker;
     worker = undefined;
+    workerLanguage = undefined;
     await previous?.terminate();
   }
 
-  async function extract(image: NormalizedScreenshot): Promise<ScreenshotTextExtraction> {
+  async function extract(image: NormalizedScreenshot, language: ScreenshotOcrLanguage = "eng"): Promise<ScreenshotTextExtraction> {
     if (!isPreparedImage(image)) return { status: "FAILED", reason: "INVALID_INPUT" };
     if (closed) return { status: "FAILED", reason: "CLOSED" };
     if (active && queue.length >= MAX_OCR_QUEUE) return { status: "FAILED", reason: "BUSY" };
@@ -44,7 +46,8 @@ export function createScreenshotTextExtractor({ createWorker = createTesseractOc
       const start = async () => {
         active = true;
         try {
-          worker ??= await createWorker();
+          if (worker && workerLanguage !== language) await discardWorker();
+          if (!worker) { worker = await createWorker(language); workerLanguage = language; }
           const result = await worker.recognize(bytes);
           if (typeof result.text !== "string") throw new Error("Invalid OCR output");
           const normalized = normalizeOutput(result.text);

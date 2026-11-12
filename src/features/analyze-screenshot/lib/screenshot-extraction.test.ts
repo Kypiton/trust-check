@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import sharp from "sharp";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-import type { NormalizedScreenshot, ScreenshotFormat } from "../model/types";
+import type { NormalizedScreenshot, ScreenshotFormat, ScreenshotOcrLanguage } from "../model/types";
 import type { OcrWorker } from "./ocr-adapter";
 import { createScreenshotTextExtractor, MAX_OCR_TEXT_LENGTH } from "./extract-screenshot-text";
 import { extractUrlsFromText, MAX_SCREENSHOT_URLS } from "./extract-urls-from-text";
@@ -36,6 +36,23 @@ describe("OCR orchestration with injected workers", () => {
     expect(worker.terminate).not.toHaveBeenCalled();
     await manager.close();
     expect(worker.terminate).toHaveBeenCalledTimes(1);
+  });
+
+  it("replaces the cached OCR worker when the requested language changes", async () => {
+    const englishWorker = mockWorker("English");
+    const russianWorker = mockWorker("Русский");
+    const createWorker = vi.fn(async (language: ScreenshotOcrLanguage = "eng") => language === "rus" ? russianWorker : englishWorker);
+    const manager = createScreenshotTextExtractor({ createWorker });
+
+    expect(await manager.extract(image, "eng")).toMatchObject({ status: "COMPLETED", text: "English" });
+    expect(await manager.extract(image, "rus")).toMatchObject({ status: "COMPLETED", text: "Русский" });
+    expect(createWorker).toHaveBeenNthCalledWith(1, "eng");
+    expect(createWorker).toHaveBeenNthCalledWith(2, "rus");
+    expect(englishWorker.terminate).toHaveBeenCalledOnce();
+    expect(russianWorker.terminate).not.toHaveBeenCalled();
+
+    await manager.close();
+    expect(russianWorker.terminate).toHaveBeenCalledOnce();
   });
 
   it.each(["", " \t\r\n\n "])("returns NO_TEXT for %j", async (text) => {

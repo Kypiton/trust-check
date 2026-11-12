@@ -31,7 +31,7 @@ describe("text check orchestration", () => {
   });
 
   it.each([phishing, normal, "Hi 李, are we still meeting tomorrow at the café?"])("keeps English-compatible text working and discloses the scope: %s", (text) => {
-    expect(completed(text).analysisNote).toBe("Text analysis currently supports English only.");
+    expect(completed(text).analysisNote).toBe("Text analysis supports English and Russian.");
   });
 
   it("rejects unsupported runtime detector evidence through the safe action boundary", async () => {
@@ -55,6 +55,11 @@ describe("text check orchestration", () => {
 
   it("returns a real LOW result for a normal message", () => {
     expect(completed(normal)).toMatchObject({ riskScore: 0, riskLevel: "LOW", confidence: "LOW", signals: [], summary: "No strong signs of fraud were detected." });
+  });
+
+  it("supports Russian text through the real action boundary", async () => {
+    const response = await analyzeTextAction("СРОЧНО! Ваш счёт будет заблокирован. Отправьте нам код подтверждения.");
+    expect(response).toMatchObject({ ok: true, analysis: { status: "COMPLETED", result: { riskLevel: "HIGH" } } });
   });
 
   it("maps a MEDIUM result", () => {

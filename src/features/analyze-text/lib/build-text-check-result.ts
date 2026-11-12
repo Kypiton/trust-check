@@ -57,7 +57,7 @@ export function mapTextCheckResult(analysis: TextAnalysis): CheckResult {
     riskScore: analysis.risk.score,
     confidence: confidence.level,
     summary: summaries[analysis.risk.level],
-    analysisNote: "Text analysis currently supports English only.",
+    analysisNote: "Text analysis supports English and Russian.",
     signals: analysis.signals.map(({ code, title, description }) => ({ code, title, description })),
     recommendedActions: buildTextRecommendations(analysis.signals),
     analysisCoverage,
@@ -72,9 +72,8 @@ export function buildTextCheckResult(value: unknown): TextCheckResponse {
   // Bound the raw payload as well as the trimmed content, matching the textarea limit.
   if (value.length > 10000) return { ok: false, error: "Keep your message to 10,000 characters or fewer." };
 
-  // A script safeguard, not language identification: other Latin-script
-  // languages cannot be distinguished from English here. Permit small amounts
-  // of non-Latin text (e.g. a name), but require at least 80% Latin letters.
+  // A conservative script safeguard for the current English/Russian rule sets.
+  // Unsupported scripts are never silently presented as a LOW assessment.
   if (!supportsTextScript(text)) {
     return { ok: true, analysis: { status: "INSUFFICIENT_DATA", reason: "UNSUPPORTED_LANGUAGE" } };
   }

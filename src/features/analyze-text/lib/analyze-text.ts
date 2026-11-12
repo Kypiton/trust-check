@@ -11,7 +11,7 @@ export function inspectText(text: string): { signals: DetectedSignal[] } {
   return { signals: detectTextSignals(text) };
 }
 
-/** English rule-based evidence only; input sufficiency and confidence belong upstream. */
+/** English and Russian rule-based evidence; input sufficiency and confidence belong upstream. */
 export function analyzeText(text: string): TextAnalysis {
   const { signals } = inspectText(text);
   return { signals, risk: calculateRisk(signals) };

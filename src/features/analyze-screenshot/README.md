@@ -6,7 +6,7 @@ network-analysis, Risk Engine, or TrustCheck Confidence Engine integration.
 ```ts
 const prepared = await prepareScreenshot({ bytes, declaredMimeType });
 if (prepared.ok) {
-  const ocr = await extractScreenshotText(prepared.image);
+  const ocr = await extractScreenshotText(prepared.image, "eng");
   if (ocr.status === "COMPLETED") {
     const urls = extractUrlsFromText(ocr.text);
   }
@@ -17,9 +17,10 @@ Pass the original successful `image` object directly, without serializing or
 mutating it. A weak registry verifies preparation provenance without retaining
 screenshots or repeating decoding. Admission takes an owned byte snapshot.
 
-OCR uses Tesseract.js 7 and the locally installed `@tesseract.js-data/eng` model.
-Only English (`eng`, LSTM) is enabled. No language/model download occurs during
-analysis. Language caches, debug outputs and logging are disabled. Only text
+OCR uses Tesseract.js 7 and locally installed `@tesseract.js-data/eng` and
+`@tesseract.js-data/rus` models. English (`eng`) and Russian (`rus`) are supported;
+the caller selects one language per recognition job. No language/model download occurs
+during analysis. Language caches, debug outputs and logging are disabled. Only text
 and overall OCR confidence are returned; hOCR, TSV and blocks are not requested.
 `ocrConfidence` is a provider measurement, separate from TrustCheck confidence.
 
@@ -51,11 +52,13 @@ hosts are omitted conservatively. Results preserve encounter order and stop at
 ten unique normalized URLs. Extraction never fetches or judges a destination.
 
 Deployment must ship `lib/tesseract-worker.cjs`, the Tesseract runtime/core and
-the English data package, and support Node worker threads/WASM. Keep these
+the English and Russian data packages, and support Node worker threads/WASM. Keep these
 server assets out of client bundles. A future bundled/standalone deployment may
 need explicit server asset tracing; no live app route imports this feature yet.
 The provider-neutral `OcrWorker` interface isolates those deployment details.
 
 Tests use injected workers for output, queue and recovery boundaries. One local
 smoke test generates English text with Sharp and runs real OCR on normalized
-PNG, JPEG and WebP, plus a blank image. It uses installed assets only.
+PNG, JPEG and WebP, plus a blank image. Language-switch tests verify that changing
+`eng`/`rus` replaces the cached worker instead of reusing the wrong model. Tests use
+installed assets only.

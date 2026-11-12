@@ -6,7 +6,7 @@ analysis coverage. Low Risk is not a guarantee of safety.
 
 - Text checks look for warning signs in English messages.
 - Link checks combine URL structure, domain metadata, redirects, and threat reputation.
-- Screenshot checks extract English text and links on the server using local OCR,
+- Screenshot checks extract English or Russian text and links on the server using local OCR,
   then assess the extracted content. No external OCR service is used.
 - Email/password accounts offer private History, saved result details, and deletion.
 - Public checking, responsive navigation, and light/dark themes are available.

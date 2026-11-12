@@ -108,7 +108,7 @@ describe("Screenshot form flow", () => {
     await click("← New check");
     vi.mocked(analyzeScreenshotAction).mockResolvedValueOnce({ ok: true, analysis: { status: "INSUFFICIENT_DATA", reason: "UNSUPPORTED_LANGUAGE" } });
     await select(); await submit();
-    expect(container.textContent).toContain("English text required");
+    expect(container.textContent).toContain("English or Russian text required");
   });
   it("keeps the file for retry after an unexpected transport failure", async () => {
     vi.mocked(analyzeScreenshotAction).mockRejectedValueOnce(new Error("Private internal text"));
@@ -135,7 +135,7 @@ describe("existing Text and Link interactions", () => {
     await click("← New check");
     expect(button("Text").getAttribute("aria-pressed")).toBe("true");
     expect(container.querySelector("textarea")?.value).toBe("");
-    expect(container.textContent).toContain("Text analysis currently supports English only.");
+    expect(container.textContent).toContain("Text analysis supports English and Russian.");
   });
 });
 

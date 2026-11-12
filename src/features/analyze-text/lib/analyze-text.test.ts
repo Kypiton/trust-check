@@ -139,3 +139,38 @@ describe("analyzeText", () => {
     expect(text).toBe("Send your OTP. This is your bank. Act now.");
   });
 });
+
+describe("Russian text support", () => {
+  it("detects a combined Russian phishing message through the same canonical signals", () => {
+    const result = analyzeText("СРОЧНО! Это служба безопасности банка. Ваш счёт будет заблокирован. Отправьте нам код подтверждения.");
+    expect(result.signals.map((item) => item.code)).toEqual(expect.arrayContaining([
+      "ARTIFICIAL_URGENCY",
+      "OTP_REQUEST",
+      "THREAT_OR_INTIMIDATION",
+      "IMPERSONATION",
+    ]));
+    expect(result.risk.level).toBe("HIGH");
+  });
+
+  it.each([
+    ["Сообщите нам пароль от аккаунта.", "CREDENTIAL_REQUEST"],
+    ["Переведите деньги немедленно.", "MONEY_REQUEST"],
+    ["Купите подарочную карту и пришлите код подарочной карты.", "GIFT_CARD_PAYMENT"],
+    ["Отправьте оплату в USDT криптовалюту.", "CRYPTO_PAYMENT"],
+    ["Вы выиграли приз. Получите награду сейчас.", "UNEXPECTED_REWARD"],
+  ])("detects Russian evidence: %s", (text, code) => {
+    expect(analyzeText(text).signals.map((item) => item.code)).toContain(code);
+  });
+
+  it("keeps a normal Russian message LOW without fabricated signals", () => {
+    expect(analyzeText("Привет, мы всё ещё встречаемся завтра в шесть?")).toMatchObject({ signals: [], risk: { score: 0, level: "LOW" } });
+  });
+
+  it.each([
+    "Не сообщайте код подтверждения никому.",
+    "Я позвонил в полицию и уточнил информацию.",
+    "Мы обсуждали перевод денег на встрече.",
+  ])("does not create obvious Russian false positives: %s", (text) => {
+    expect(analyzeText(text).signals).toEqual([]);
+  });
+});

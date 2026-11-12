@@ -4,8 +4,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import { HeaderNav } from "./HeaderNav";
 import Link from "next/link";
 import { SignOutButton } from "@/features/auth/ui/SignOutButton";
+import { useLocale } from "@/shared/i18n/LocaleProvider";
 
 export function MobileMenu({ identity }: { identity: string | null }) {
+  const locale = useLocale();
   const [isOpen, setIsOpen] = useState(false);
   const panelId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -38,7 +40,7 @@ export function MobileMenu({ identity }: { identity: string | null }) {
       <button
         ref={buttonRef}
         type="button"
-        aria-label={isOpen ? "Close navigation menu" : "Open navigation menu"}
+        aria-label={isOpen ? (locale === "ru" ? "Закрыть меню навигации" : "Close navigation menu") : (locale === "ru" ? "Открыть меню навигации" : "Open navigation menu")}
         aria-expanded={isOpen}
         aria-controls={panelId}
         onClick={() => setIsOpen((open) => !open)}
@@ -54,7 +56,7 @@ export function MobileMenu({ identity }: { identity: string | null }) {
         className="absolute inset-x-0 top-full border-b border-border bg-surface px-4 py-3"
       >
         <HeaderNav mobile onNavigate={() => setIsOpen(false)} />
-        {identity !== null ? <div className="mt-2 flex items-center justify-between gap-3 border-t border-border pt-3"><span className="truncate text-sm text-foreground">{identity}</span><SignOutButton onSignedOut={() => setIsOpen(false)} /></div> : <Link href="/login" onClick={() => setIsOpen(false)} className="flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">Sign in</Link>}
+        {identity !== null ? <div className="mt-2 flex items-center justify-between gap-3 border-t border-border pt-3"><span className="truncate text-sm text-foreground">{identity}</span><SignOutButton onSignedOut={() => setIsOpen(false)} /></div> : <Link href="/login" onClick={() => setIsOpen(false)} className="flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-medium text-muted hover:bg-surface-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">{locale === "ru" ? "Войти" : "Sign in"}</Link>}
       </div>
     </div>
   );

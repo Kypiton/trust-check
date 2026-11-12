@@ -72,7 +72,7 @@ export async function buildScreenshotCheckResult(input: ScreenshotInput, {
   }
   if (!prepared.ok) return preparationFailure(prepared.reason);
   let ocr: ScreenshotTextExtraction;
-  try { ocr = await extractText(prepared.image); } catch {
+  try { ocr = await extractText(prepared.image, input.ocrLanguage ?? "eng"); } catch {
     return { ok: true, analysis: { status: "FAILED", analysisCoverage: extractionCoverage("FAILED") } };
   }
   if (ocr.status === "FAILED") {
@@ -116,7 +116,7 @@ export async function buildScreenshotCheckResult(input: ScreenshotInput, {
     ...(selected.length ? buildUrlRecommendations(signals) : []),
   ]) actions.set(action.code, action);
 
-  let note = "Text was extracted from the screenshot. Text analysis currently supports English only.";
+  let note = "Text was extracted from the screenshot. Text analysis supports English and Russian.";
   if (candidates.size > selected.length) note += ` ${candidates.size} links were detected; the first ${selected.length} were analyzed. Additional links were not checked.`;
   else if (selected.length) note += ` ${selected.length} ${selected.length === 1 ? "link was" : "links were"} detected and analyzed.`;
   if (ocr.truncated) note += " Only the first 20,000 characters of extracted text were considered.";

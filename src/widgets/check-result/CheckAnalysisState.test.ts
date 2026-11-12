@@ -8,8 +8,8 @@ describe("unsupported-language result", () => {
     const html = renderToStaticMarkup(createElement(CheckAnalysisState, {
       analysis: { status: "INSUFFICIENT_DATA", reason: "UNSUPPORTED_LANGUAGE" },
     }));
-    expect(html).toContain("English text required");
-    expect(html).toContain("Text analysis currently supports English only.");
+    expect(html).toContain("English or Russian text required");
+    expect(html).toContain("Text analysis supports English and Russian.");
     expect(html).toContain("We could not assess this message.");
     expect(html).not.toMatch(/Low Risk|Risk score|High Risk|Upload a clearer screenshot/);
   });

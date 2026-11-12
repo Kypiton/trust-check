@@ -12,7 +12,14 @@ function upload(file = new File([new Uint8Array([1, 2, 3])], "private.png", { ty
 describe("Screenshot Server Action upload boundary", () => {
   it("passes only in-memory bytes and declared MIME to orchestration", async () => {
     expect(await analyzeScreenshotAction(upload())).toMatchObject({ ok: true, analysis: { status: "INSUFFICIENT_DATA" } });
-    expect(builder.buildScreenshotCheckResult).toHaveBeenCalledExactlyOnceWith({ bytes: new Uint8Array([1, 2, 3]), declaredMimeType: "image/png" });
+    expect(builder.buildScreenshotCheckResult).toHaveBeenCalledExactlyOnceWith({ bytes: new Uint8Array([1, 2, 3]), declaredMimeType: "image/png", ocrLanguage: "eng" });
+  });
+
+  it("selects Russian OCR when the UI locale requests it", async () => {
+    const form = upload();
+    form.set("language", "ru");
+    await analyzeScreenshotAction(form);
+    expect(builder.buildScreenshotCheckResult).toHaveBeenCalledExactlyOnceWith({ bytes: new Uint8Array([1, 2, 3]), declaredMimeType: "image/png", ocrLanguage: "rus" });
   });
   it.each([null, "image", {}])("rejects a non-FormData request: %j", async (value) => {
     expect(await analyzeScreenshotAction(value as FormData)).toMatchObject({ ok: false });
