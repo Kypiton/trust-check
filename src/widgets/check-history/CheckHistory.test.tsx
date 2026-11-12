@@ -10,7 +10,7 @@ it("renders the empty state and actions to the public Check page", () => {
 it.each([["TEXT", "Text"], ["URL", "Link"], ["SCREENSHOT", "Screenshot"]] as const)("maps %s to %s", (inputType, label) => {
   expect(render([{ ...item, inputType }])).toContain(`>${label}</dd>`);
 });
-it.each([["LOW", "Low Risk", "text-success"], ["MEDIUM", "Be Careful", "text-warning"], ["HIGH", "High Risk", "text-danger"]] as const)("shows %s risk with text and semantic color", (riskLevel, label, color) => {
+it.each([["LOW", "Low Risk", "text-success"], ["MEDIUM", "Medium Risk", "text-warning"], ["HIGH", "High Risk", "text-danger"]] as const)("shows %s risk with text and semantic color", (riskLevel, label, color) => {
   const html = render([{ ...item, riskLevel }]); expect(html).toContain(label); expect(html).toContain(color); expect(html).toContain("10/100");
 });
 it.each([["LOW", "Low confidence"], ["MEDIUM", "Medium confidence"], ["HIGH", "High confidence"]] as const)("labels %s confidence", (confidence, label) => {

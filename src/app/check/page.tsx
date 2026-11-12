@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import { CheckForm } from "@/widgets/check-form/CheckForm";
+
+export const metadata: Metadata = {
+  title: "Check something suspicious",
+  description: "Check suspicious text, links, or screenshots for scam and phishing warning signs.",
+};
 
 const signals = [
   { title: "Urgency", description: "Pressure and time limits", path: "M12 8v4l3 2M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z" },

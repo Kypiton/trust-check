@@ -1,4 +1,20 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TrustCheck
+
+TrustCheck assesses scam and phishing risk in **Text**, **Link**, and **Screenshot**
+inputs. Results explain risk, confidence, warning signs, recommended actions, and
+analysis coverage. Low Risk is not a guarantee of safety.
+
+- Text checks look for warning signs in English messages.
+- Link checks combine URL structure, domain metadata, redirects, and threat reputation.
+- Screenshot checks extract English text and links on the server using local OCR,
+  then assess the extracted content. No external OCR service is used.
+- Email/password accounts offer private History, saved result details, and deletion.
+- Public checking, responsive navigation, and light/dark themes are available.
+
+Anonymous analyses are not saved. Signed-in completed/partial results are saved
+as metadata automatically. Raw messages, original links, images, extracted text,
+and provider responses are excluded from saved History. External security providers
+may receive submitted/detected links during link checks; analysis is not fully local.
 
 ## Getting Started
 
@@ -118,35 +134,31 @@ To reset **local development quotas only**, without deleting users or saved chec
 docker compose exec postgres psql -U trustcheck -d trustcheck -c 'TRUNCATE TABLE "AnalysisRateLimit", "rateLimit";'
 ```
 
-First, run the development server:
+### Run and validate
+
+Install dependencies with `npm ci`, configure the ignored `.env.local`, and apply
+migrations as above. Run `npm run dev` and open http://localhost:3000.
+
+| Environment variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Server-only PostgreSQL connection (local URL above). |
+| `BETTER_AUTH_URL` | Application origin, locally `http://localhost:3000`. |
+| `BETTER_AUTH_SECRET` | Strong, stable authentication secret. |
+| `RATE_LIMIT_SECRET` | Strong, stable rate-limit key secret. |
+| `GOOGLE_WEB_RISK_API_KEY` | Optional threat reputation provider key. Missing configuration is reflected in coverage. |
+| `TRUST_PROXY_IP_HEADERS`, `TRUSTED_CLIENT_IP_HEADER` | Production proxy trust; see the rate-limit section. |
+
+Never commit `.env.local` or expose server secrets through `NEXT_PUBLIC_` variables.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx prisma validate
+npm test
+npm run lint
+npx tsc --noEmit
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+If the environment cannot run Turbopack workers, `npm run build -- --webpack`
+is the supported build fallback. Development-only result previews live at
+`/check/high`, `/check/medium`, `/check/low`, `/check/partial`, `/check/loading`,
+`/check/error`, and `/check/insufficient`; these do not expose sample results in production.

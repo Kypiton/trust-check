@@ -14,8 +14,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'TrustCheck',
-  description: 'Check suspicious messages and links for signs of fraud.',
+  title: {
+    default: 'TrustCheck — Understand the risk',
+    template: '%s | TrustCheck',
+  },
+  description: 'Check suspicious messages, links, and screenshots for scam and phishing warning signs. Get a risk assessment and practical next steps, without needing an account.',
+  openGraph: {
+    title: 'TrustCheck — Understand the risk',
+    description: 'Check suspicious messages, links, and screenshots. Understand warning signs and decide what to do next. A risk assessment, not a safety guarantee.',
+    siteName: 'TrustCheck',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

@@ -5,7 +5,7 @@ import type { CheckHistoryItem } from "@/entities/check/server/get-user-check-hi
 const inputLabels = { TEXT: "Text", URL: "Link", SCREENSHOT: "Screenshot" };
 const riskStyles = {
   LOW: { label: "Low Risk", className: "bg-success-soft text-success" },
-  MEDIUM: { label: "Be Careful", className: "bg-warning-soft text-warning" },
+  MEDIUM: { label: "Medium Risk", className: "bg-warning-soft text-warning" },
   HIGH: { label: "High Risk", className: "bg-danger-soft text-danger" },
 };
 const confidenceLabels = { LOW: "Low confidence", MEDIUM: "Medium confidence", HIGH: "High confidence" };

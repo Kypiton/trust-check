@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { DeleteCheckControl } from "@/features/delete-check/ui/DeleteCheckControl";
 import { notFound, redirect } from "next/navigation";
@@ -9,6 +10,11 @@ import { CheckAnalysisState } from "@/widgets/check-result";
 
 const previewIds = new Set(["high", "medium", "low", "loading", "error", "insufficient", "partial"]);
 const linkClass = "inline-flex min-h-11 items-center rounded-md text-sm font-medium text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+
+export const metadata: Metadata = {
+  title: "Saved assessment",
+  robots: { index: false, follow: false },
+};
 
 export default async function CheckResultPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

@@ -88,7 +88,7 @@ export function CheckAnalysisState({ analysis, onRetry, onNewCheck }: {
       {!failed && !unsupportedLanguage && (
         <ul className="mt-5 list-disc space-y-2 pl-5 text-sm leading-6 text-muted">
           <li>Paste the full message</li>
-          <li>Provide a complete URL</li>
+          <li>Provide a complete link</li>
           <li>Upload a clearer screenshot</li>
         </ul>
       )}

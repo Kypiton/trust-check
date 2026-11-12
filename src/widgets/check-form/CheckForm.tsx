@@ -104,7 +104,7 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
     return (
       <div aria-busy="true">
         <CheckAnalysisState analysis={{ status: "ANALYZING", steps: [
-          { code: mode, title: mode === "SCREENSHOT" ? "Reading screenshot and checking its content" : mode === "URL" ? "Checking URL structure" : "Checking message", status: "CURRENT" },
+          { code: mode, title: mode === "SCREENSHOT" ? "Reading screenshot and checking its content" : mode === "URL" ? "Checking link structure" : "Checking message", status: "CURRENT" },
         ] }} />
       </div>
     );
@@ -192,10 +192,11 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
 
         <p className="flex items-start justify-center gap-2 text-sm text-muted">
           <svg aria-hidden="true" className="mt-0.5 size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></svg>
-          Your content is only used for this analysis.
+          Raw content is not saved to History. Signed-in results are saved as metadata.
         </p>
+        {mode !== "TEXT" && <p className="text-center text-xs leading-5 text-muted">Submitted or detected links may be sent to external security providers.</p>}
         <button type="submit" disabled={disabled} className="min-h-11 w-full rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors duration-150 hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-primary">
-          {mode === "TEXT" ? "Check message" : mode === "URL" ? "Check link" : "Check screenshot"}
+          {mode === "TEXT" ? "Check text" : mode === "URL" ? "Check link" : "Check screenshot"}
         </button>
       </form>
       {children}

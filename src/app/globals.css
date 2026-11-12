@@ -43,6 +43,12 @@ html.dark {
   color-scheme: dark;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 body {
   min-height: 100vh;
   background: var(--tc-background);

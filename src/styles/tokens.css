@@ -13,10 +13,10 @@
   --tc-primary-soft: #DBEAFE;
   --tc-primary-foreground: #FFFFFF;
 
-  --tc-success: #16A34A;
+  --tc-success: #15803D;
   --tc-success-soft: #F0FDF4;
 
-  --tc-warning: #D97706;
+  --tc-warning: #B45309;
   --tc-warning-soft: #FFFBEB;
 
   --tc-danger: #DC2626;
@@ -42,4 +42,16 @@
   --tc-foreground: #F8FAFC;
   --tc-muted: #94A3B8;
   --tc-muted-secondary: #64748B;
+
+  /* Preserve semantic roles with readable text and tinted surfaces in dark mode. */
+  --tc-primary: #60A5FA;
+  --tc-primary-hover: #93C5FD;
+  --tc-primary-soft: #172554;
+  --tc-primary-foreground: #0F172A;
+  --tc-success: #4ADE80;
+  --tc-success-soft: #052E16;
+  --tc-warning: #FBBF24;
+  --tc-warning-soft: #451A03;
+  --tc-danger: #F87171;
+  --tc-danger-soft: #450A0A;
 }

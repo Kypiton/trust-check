@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSession } from "@/shared/server/auth/session";
 import { DeleteCheckControl } from "@/features/delete-check/ui/DeleteCheckControl";
+
+export const metadata: Metadata = {
+  title: "Privacy",
+  description: "Understand what TrustCheck saves and manage your saved analysis history.",
+  robots: { index: false, follow: false },
+};
 
 export default async function PrivacyPage() {
   const session = await getSession();
@@ -13,11 +20,12 @@ export default async function PrivacyPage() {
         <h1 className="mt-6 text-3xl font-bold tracking-tight">Privacy</h1>
         <section className="mt-6 rounded-xl border border-border bg-surface p-6">
           <h2 className="text-xl font-semibold">Your saved analyses</h2>
-          <p className="mt-3 leading-7 text-muted">TrustCheck saves only analysis result metadata for signed-in users.</p>
+          <p className="mt-3 leading-7 text-muted">TrustCheck saves only analysis result metadata for signed-in users. Completed and partial assessments are saved automatically, including risk, confidence, warning signs, and recommended actions. Anonymous analyses are not saved.</p>
           <p className="mt-4 text-muted">TrustCheck does not save:</p>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
             <li>Submitted message text</li><li>Original links</li><li>Screenshots</li><li>OCR text</li>
           </ul>
+          <p className="mt-4 leading-7 text-muted">Some link checks may send submitted or detected links to external security providers. Screenshot text extraction runs on our server without an external OCR service.</p>
           <p className="my-5 leading-7 text-muted">Clearing saved history permanently removes your saved results from the application database. Your account and sign-in sessions are kept.</p>
           <DeleteCheckControl mode="all" label="Clear saved history" />
         </section>

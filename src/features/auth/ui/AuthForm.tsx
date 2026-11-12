@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 import { authClient } from "@/shared/lib/auth-client";
 
-const inputClass = "mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+const inputClass = "mt-1 min-h-11 w-full rounded-md border border-border bg-background px-3 py-2 text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
 
 export function AuthForm({ mode }: { mode: "register" | "login" }) {
   const register = mode === "register";
@@ -60,6 +60,7 @@ export function AuthForm({ mode }: { mode: "register" | "login" }) {
     <main className="flex flex-1 justify-center bg-background px-4 py-12 text-foreground md:px-6">
       <section aria-labelledby="auth-title" className="h-fit w-full max-w-[440px] rounded-xl border border-border bg-surface p-6">
         <h1 id="auth-title" className="text-2xl font-semibold">{register ? "Create an account" : "Sign in"}</h1>
+        <p className="mt-3 text-sm leading-6 text-muted">Keep your assessments together in History. You can also <Link href="/check" className="rounded-sm text-primary underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">check without an account</Link>.</p>
         <form onSubmit={submit} aria-busy={pending} className="mt-6 space-y-4">
           {register && <div><label htmlFor="name" className="text-sm font-medium">Name</label><input className={inputClass} id="name" name="name" autoComplete="name" required maxLength={100} /></div>}
           <div><label htmlFor="email" className="text-sm font-medium">Email</label><input className={inputClass} id="email" name="email" type="email" autoComplete="email" required /></div>

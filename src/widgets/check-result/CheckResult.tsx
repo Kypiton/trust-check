@@ -7,7 +7,7 @@ import type {
 
 const riskStyles = {
   LOW: { label: "Low Risk", foreground: "text-success", background: "bg-success-soft" },
-  MEDIUM: { label: "Be Careful", foreground: "text-warning", background: "bg-warning-soft" },
+  MEDIUM: { label: "Medium Risk", foreground: "text-warning", background: "bg-warning-soft" },
   HIGH: { label: "High Risk", foreground: "text-danger", background: "bg-danger-soft" },
 } satisfies Record<RiskLevel, { label: string; foreground: string; background: string }>;
 

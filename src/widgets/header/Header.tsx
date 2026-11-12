@@ -26,7 +26,7 @@ export async function Header() {
 
         <div className="ml-auto flex shrink-0 items-center gap-1 md:gap-3">
           <ThemeToggle />
-          {identity !== null ? <div className="hidden items-center gap-3 md:flex"><span className="max-w-40 truncate text-sm text-foreground">{identity}</span><SignOutButton /></div> : <Link
+          {identity !== null ? <div className="hidden items-center gap-3 md:flex"><span className="max-w-24 truncate lg:max-w-40 text-sm text-foreground">{identity}</span><SignOutButton /></div> : <Link
             href="/login"
             className="hidden rounded-md border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary md:inline-flex"
           >
