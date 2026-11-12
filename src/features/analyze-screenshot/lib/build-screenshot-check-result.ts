@@ -1,3 +1,4 @@
+import type { AnalysisLimitFailure } from "@/shared/model/analysis-limit";
 import { calculateConfidence, type AnalysisSource } from "../../../entities/confidence";
 import { calculateRisk, type DetectedSignal, type RiskLevel, type SignalCode } from "../../../entities/risk";
 import type { CheckAnalysis, RecommendedAction } from "../../../entities/check/model/types";
@@ -14,7 +15,8 @@ import type { ScreenshotFailureReason, ScreenshotInput, ScreenshotPreparation, S
 
 export const MAX_SCREENSHOT_ANALYZED_URLS = 3;
 export type ScreenshotCheckResponse =
-  | { ok: false; error: string }
+  | AnalysisLimitFailure
+  | { ok: false; error: string; code?: undefined }
   | { ok: true; analysis: Exclude<CheckAnalysis, { status: "ANALYZING" }>; persistedCheckId?: string };
 
 const summaries: Record<RiskLevel, string> = {

@@ -120,3 +120,23 @@ model Verification {
   @@index([identifier])
   @@map("verification")
 }
+
+model RateLimit {
+  id          String @id
+  key         String
+  count       Int
+  lastRequest BigInt
+
+  @@unique([key])
+  @@map("rateLimit")
+}
+
+// Separate from Better Auth's rateLimit table; no raw content or addresses.
+model AnalysisRateLimit {
+  key         String   @id
+  windowStart DateTime @db.Timestamptz(3)
+  count       Int
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamptz(3)
+
+  @@index([updatedAt])
+}

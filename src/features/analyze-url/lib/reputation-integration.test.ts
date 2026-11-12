@@ -298,3 +298,6 @@ describe("real Link flow with reputation enrichment", () => {
 vi.mock("@/entities/check/server", () => ({
   persistAnalysisResponse: vi.fn(async (_inputType: string, response: unknown) => response),
 }));
+
+// Existing analysis/persistence tests do not consume application quotas.
+vi.mock("@/shared/server/rate-limit", () => ({ checkAnalysisRateLimit: vi.fn(async () => null) }));

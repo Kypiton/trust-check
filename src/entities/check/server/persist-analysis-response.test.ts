@@ -84,3 +84,6 @@ it("rejects an invalid screenshot upload before any database access", async () =
   expect(await analyzeScreenshotAction(new FormData())).toMatchObject({ ok: false });
   expect(mocks.screenshot).not.toHaveBeenCalled(); expect(mocks.session).not.toHaveBeenCalled(); expect(mocks.create).not.toHaveBeenCalled();
 });
+
+// Existing analysis/persistence tests do not consume application quotas.
+vi.mock("@/shared/server/rate-limit", () => ({ checkAnalysisRateLimit: vi.fn(async () => null) }));

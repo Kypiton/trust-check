@@ -1,3 +1,4 @@
+import type { AnalysisLimitFailure } from "@/shared/model/analysis-limit";
 import { calculateConfidence } from "../../../entities/confidence";
 import type { CheckAnalysis, CheckResult, RecommendedAction } from "../../../entities/check/model/types";
 import { calculateRisk, type DetectedSignal, type RiskCalculation, type RiskLevel, type SignalCode } from "../../../entities/risk";
@@ -9,7 +10,8 @@ import { MAX_URL_INPUT_LENGTH } from "./limits";
 import { collectUrlEvidence, urlCoverage, type UrlEvidenceDependencies } from "./collect-url-evidence";
 
 export type UrlCheckResponse =
-  | { ok: false; error: string }
+  | AnalysisLimitFailure
+  | { ok: false; error: string; code?: undefined }
   | { ok: true; analysis: Exclude<CheckAnalysis, { status: "ANALYZING" }>; persistedCheckId?: string };
 
 const summaries: Record<RiskLevel, string> = {

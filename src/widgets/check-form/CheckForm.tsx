@@ -67,7 +67,12 @@ export function CheckForm({ introduction, children }: { introduction?: ReactNode
         ? await analyzeUrlAction(url)
         : await analyzeTextAction(text);
       if (!response.ok) {
-        setError(response.error);
+        if (response.code === "RATE_LIMITED") {
+          const minutes = Math.max(1, Math.ceil(response.retryAfterSeconds / 60));
+          setError(`Too many checks. Try again in about ${minutes} ${minutes === 1 ? "minute" : "minutes"}.`);
+        } else {
+          setError(response.error);
+        }
         focusForm.current = true;
         setAnalysis(null);
       } else {

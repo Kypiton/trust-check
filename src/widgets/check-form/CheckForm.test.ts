@@ -154,3 +154,11 @@ it("does not resubmit an in-flight analysis after repeated submit events or a re
   await act(async () => finish(completed));
   expect(analyzeScreenshotAction).toHaveBeenCalledOnce();
 });
+
+it("keeps the selected screenshot and shows calm retry feedback when rate limited", async () => {
+  vi.mocked(analyzeScreenshotAction).mockResolvedValue({ ok: false, code: "RATE_LIMITED", error: "Too many checks. Try again in a few minutes.", retryAfterSeconds: 120 });
+  await click("Screenshot"); const file = new File(["dummy"], "retained.png", { type: "image/png" }); await select(file); await submit();
+  expect(container.textContent).toContain("Too many checks"); expect(container.textContent).toContain("2 minute"); expect(container.textContent).toContain("retained.png"); expect(container.textContent).not.toContain("Analysis failed");
+  await submit(); expect(analyzeScreenshotAction).toHaveBeenCalledTimes(2);
+  expect(vi.mocked(analyzeScreenshotAction).mock.calls[1][0].get("file")).toBe(file);
+});

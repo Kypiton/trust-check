@@ -1,3 +1,4 @@
+import type { AnalysisLimitFailure } from "@/shared/model/analysis-limit";
 import { calculateConfidence, type AnalysisSource } from "../../../entities/confidence";
 import type { CheckAnalysis, CheckResult, RecommendedAction } from "../../../entities/check/model/types";
 import type { DetectedSignal, RiskLevel, SignalCode } from "../../../entities/risk";
@@ -5,7 +6,8 @@ import { analyzeText, type TextAnalysis } from "./analyze-text";
 import { supportsTextScript, hasUsefulText } from "./text-scope";
 
 export type TextCheckResponse =
-  | { ok: false; error: string }
+  | AnalysisLimitFailure
+  | { ok: false; error: string; code?: undefined }
   | { ok: true; analysis: Exclude<CheckAnalysis, { status: "ANALYZING" }>; persistedCheckId?: string };
 
 const summaries: Record<RiskLevel, string> = {
