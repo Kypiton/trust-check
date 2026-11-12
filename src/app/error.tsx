@@ -2,6 +2,6 @@
 
 import { PageRecovery } from "@/shared/ui/PageRecovery";
 
-export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  return <PageRecovery retry={reset} />;
+export default function ErrorPage({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
+  return <PageRecovery retry={retry} />;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { InteractionButton } from "@/shared/ui/motion/InteractionButton";
 import { useRouter } from "next/navigation";
 import { LOCALE_COOKIE, type Locale } from "@/shared/i18n";
 import { useLocale } from "@/shared/i18n/LocaleProvider";
@@ -16,13 +17,13 @@ export function LanguageToggle() {
   }
 
   return (
-    <button
+    <InteractionButton
       type="button"
       onClick={toggle}
       aria-label={label}
       className="inline-flex h-10 min-w-10 shrink-0 items-center justify-center rounded-md px-2 text-xs font-semibold uppercase tracking-wide text-muted transition-colors hover:bg-surface-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
     >
       {locale === "ru" ? "EN" : "RU"}
-    </button>
+    </InteractionButton>
   );
 }

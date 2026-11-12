@@ -4,12 +4,13 @@ TrustCheck assesses scam and phishing risk in **Text**, **Link**, and **Screensh
 inputs. Results explain risk, confidence, warning signs, recommended actions, and
 analysis coverage. Low Risk is not a guarantee of safety.
 
-- Text checks look for warning signs in English messages.
+- Text checks look for warning signs in English and Russian messages.
 - Link checks combine URL structure, domain metadata, redirects, and threat reputation.
 - Screenshot checks extract English or Russian text and links on the server using local OCR,
   then assess the extracted content. No external OCR service is used.
 - Email/password accounts offer private History, saved result details, and deletion.
-- Public checking, responsive navigation, and light/dark themes are available.
+- Public checking, responsive navigation, English/Russian UI, and light/dark themes are available.
+- Check UX includes safe examples, smart Link-mode suggestions for pasted URLs, screenshot drag/drop or clipboard paste, and copyable result summaries.
 
 Anonymous analyses are not saved. Signed-in completed/partial results are saved
 as metadata automatically. Raw messages, original links, images, extracted text,
@@ -162,3 +163,14 @@ If the environment cannot run Turbopack workers, `npm run build -- --webpack`
 is the supported build fallback. Development-only result previews live at
 `/check/high`, `/check/medium`, `/check/low`, `/check/partial`, `/check/loading`,
 `/check/error`, and `/check/insufficient`; these do not expose sample results in production.
+
+### UI motion and feedback
+
+Motion (`motion/react`) provides the shared input selector, restrained button
+feedback, one-time section reveals, and transient notifications. Fresh results
+count up visually for 600 ms; assistive technology receives the final score
+immediately, and saved results remain static. Reduced-motion preferences disable
+movement. Waiting screens describe possible checks, never fabricated progress.
+
+Tailwind runs through its official PostCSS plugin for both webpack and Turbopack.
+This is required for `npm run build -- --webpack` to include utility styles.

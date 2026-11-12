@@ -2,6 +2,7 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { LocaleProvider } from "@/shared/i18n/LocaleProvider";
 import { CheckForm } from "./CheckForm";
 import { analyzeTextAction } from "../../features/analyze-text/actions/analyze-text-action";
 import { analyzeUrlAction } from "../../features/analyze-url/actions/analyze-url-action";
@@ -19,6 +20,7 @@ let container: HTMLDivElement;
 let root: Root;
 beforeEach(async () => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  vi.stubGlobal("IntersectionObserver", class { observe() {} unobserve() {} disconnect() {} });
   vi.mocked(analyzeScreenshotAction).mockResolvedValue(completed);
   vi.mocked(analyzeTextAction).mockResolvedValue(completed);
   vi.mocked(analyzeUrlAction).mockResolvedValue(completed);
@@ -63,7 +65,7 @@ describe("Screenshot form flow", () => {
     expect(data).toBeInstanceOf(FormData);
     expect(data.get("file")).toBe(file);
     expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
-    expect(container.textContent).toContain("Reading screenshot and checking its content");
+    expect(container.textContent).toContain("Analyzing screenshot");
     await act(async () => resolve(completed));
     expect(container.textContent).toContain("Low Risk");
     expect(container.textContent).toContain("This does not guarantee that the content is safe.");
@@ -161,4 +163,70 @@ it("keeps the selected screenshot and shows calm retry feedback when rate limite
   expect(container.textContent).toContain("Too many checks"); expect(container.textContent).toContain("2 minute"); expect(container.textContent).toContain("retained.png"); expect(container.textContent).not.toContain("Analysis failed");
   await submit(); expect(analyzeScreenshotAction).toHaveBeenCalledTimes(2);
   expect(vi.mocked(analyzeScreenshotAction).mock.calls[1][0].get("file")).toBe(file);
+});
+
+describe("check experience improvements", () => {
+  it("suggests Link mode when the Text input is entirely a URL and preserves the value when switching", async () => {
+    const textarea = container.querySelector<HTMLTextAreaElement>("textarea")!;
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, "https://example.com/login");
+    await act(async () => textarea.dispatchEvent(new Event("input", { bubbles: true })));
+    expect(container.textContent).toContain("This looks like a link");
+    expect(container.textContent).toContain("domain, redirects, and threat reputation");
+    await click("Check as a link");
+    expect(button("Link").getAttribute("aria-pressed")).toBe("true");
+    expect(container.querySelector<HTMLInputElement>('input[inputmode="url"]')?.value).toBe("https://example.com/login");
+  });
+
+  it("lets the user dismiss a smart link suggestion and keep analyzing it as text", async () => {
+    const textarea = container.querySelector<HTMLTextAreaElement>("textarea")!;
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, "example.com/login");
+    await act(async () => textarea.dispatchEvent(new Event("input", { bubbles: true })));
+    await click("Keep as text");
+    expect(container.textContent).not.toContain("This looks like a link");
+    expect(button("Check text").disabled).toBe(false);
+  });
+
+  it("fills safe demonstration examples without submitting automatically", async () => {
+    await click("Try an example");
+    expect(document.body.textContent).toContain("Example loaded");
+    expect(container.querySelector<HTMLTextAreaElement>("textarea")?.value).toContain("URGENT");
+    expect(analyzeTextAction).not.toHaveBeenCalled();
+    await click("Link");
+    await click("Try an example");
+    expect(document.body.textContent).toContain("Example loaded");
+    expect(container.querySelector<HTMLInputElement>('input[inputmode="url"]')?.value).toBe("http://paypa1.example/login");
+    expect(analyzeUrlAction).not.toHaveBeenCalled();
+  });
+
+  it("accepts an image pasted from the clipboard while Screenshot mode is open", async () => {
+    await click("Screenshot");
+    const file = new File(["clipboard image"], "clipboard.png", { type: "image/png" });
+    const paste = new Event("paste", { bubbles: true, cancelable: true });
+    Object.defineProperty(paste, "clipboardData", {
+      value: {
+        items: [{ kind: "file", getAsFile: () => file }],
+        files: [file],
+      },
+    });
+    await act(async () => document.dispatchEvent(paste));
+    expect(document.body.textContent).toContain("Screenshot pasted");
+    expect(container.textContent).toContain("clipboard.png");
+    expect(container.textContent).toContain("Pasted from clipboard");
+    expect(button("Check screenshot").disabled).toBe(false);
+    await submit();
+    const data = vi.mocked(analyzeScreenshotAction).mock.calls[0][0];
+    expect(data.get("file")).toBe(file);
+    expect(data.get("language")).toBe("en");
+  });
+});
+
+it("localizes example feedback and unavailable errors in Russian while preserving input", async () => {
+  await act(async () => root.render(createElement(LocaleProvider, { locale: "ru" }, createElement(CheckForm))));
+  await click("Попробовать пример");
+  expect(document.body.textContent).toContain("Пример добавлен");
+  const input = container.querySelector("textarea")!.value;
+  vi.mocked(analyzeTextAction).mockResolvedValue({ ok: false, code: "TEMPORARILY_UNAVAILABLE", error: "Checks are temporarily unavailable. Please try again shortly." });
+  await submit();
+  expect(container.querySelector('[role="alert"]')?.textContent).toContain("Проверки временно недоступны");
+  expect(container.querySelector("textarea")!.value).toBe(input);
 });

@@ -31,7 +31,7 @@ it("offers safe 404 navigation without revealing ownership", () => {
 });
 
 it("offers generic recovery without rendering exception details", () => {
-  const html = renderToStaticMarkup(<ErrorPage error={new Error("private detail")} reset={() => {}} />);
+  const html = renderToStaticMarkup(<ErrorPage error={new Error("private detail")} retry={() => {}} />);
   expect(html).toContain("Try again");
   expect(html).toContain("Start new check");
   expect(html).toContain("Go home");

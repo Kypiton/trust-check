@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import type { AnalysisStep, CheckAnalysis } from "@/entities/check/model/types";
+import type { CheckAnalysis } from "@/entities/check/model/types";
 import { useLocale } from "@/shared/i18n/LocaleProvider";
+import { AnalysisActivity } from "./AnalysisActivity";
 import { CheckResult } from "./CheckResult";
 
 const primaryAction = "inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
@@ -14,13 +15,12 @@ export function PartialAnalysisNotice() {
   return <aside aria-labelledby="partial-heading" className="flex items-start gap-3 rounded-xl border border-border bg-surface p-4 md:p-5"><InfoIcon className="mt-0.5 text-warning" /><div><h2 id="partial-heading" className="text-sm font-semibold">{ru ? "Некоторые проверки были недоступны" : "Some checks were unavailable"}</h2><p className="mt-1 text-sm leading-6 text-muted">{ru ? "Результат основан на информации, которую удалось проверить." : "The result is based on the information we could verify."}</p></div></aside>;
 }
 
-export function CheckAnalysisState({ analysis, onRetry, onNewCheck }: { analysis: CheckAnalysis; onRetry?: () => void; onNewCheck?: () => void }) {
+export function CheckAnalysisState({ analysis, onRetry, onNewCheck, fresh = false }: { analysis: CheckAnalysis; fresh?: boolean; onRetry?: () => void; onNewCheck?: () => void }) {
   const ru = useLocale() === "ru";
-  if (analysis.status === "COMPLETED" || analysis.status === "PARTIAL") return <div className="space-y-6">{analysis.status === "PARTIAL" && <PartialAnalysisNotice />}<CheckResult result={analysis.result} /></div>;
+  if (analysis.status === "COMPLETED" || analysis.status === "PARTIAL") return <div className="space-y-6">{analysis.status === "PARTIAL" && <PartialAnalysisNotice />}<CheckResult fresh={fresh} result={analysis.result} /></div>;
   if (analysis.status === "ANALYZING") {
-    const labels: Record<AnalysisStep["status"], string> = ru ? { COMPLETED: "Готово", CURRENT: "В процессе", PENDING: "Ожидание" } : { COMPLETED: "Completed", CURRENT: "In progress", PENDING: "Pending" };
-    const styles = { COMPLETED: { color: "text-success", background: "bg-surface" }, CURRENT: { color: "text-primary", background: "bg-surface-secondary" }, PENDING: { color: "text-muted", background: "bg-surface" } };
-    return <section aria-labelledby="analysis-heading" className="rounded-xl border border-border bg-surface p-5 md:p-8"><div role="status" aria-atomic="true" className="text-center"><h1 id="analysis-heading" className="text-2xl font-semibold tracking-tight">{ru ? "Проверяем содержимое..." : "Checking this content..."}</h1><p className="mt-3 text-sm leading-6 text-muted">{ru ? "Обычно это занимает несколько секунд." : "This usually takes a few seconds."}</p></div><ol className="mx-auto mt-7 max-w-md space-y-2">{analysis.steps.map((step) => { const style = styles[step.status]; const title = ru ? (step.code === "SCREENSHOT" ? "Читаем скриншот и проверяем содержимое" : step.code === "URL" ? "Проверяем структуру ссылки" : "Проверяем сообщение") : step.title; return <li key={step.code} aria-current={step.status === "CURRENT" ? "step" : undefined} className={`flex items-center gap-3 rounded-lg px-3 py-3 ${style.background}`}><svg aria-hidden="true" className={`size-5 shrink-0 ${style.color}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">{step.status === "COMPLETED" ? <path d="m5 12 4 4L19 6" /> : <circle cx="12" cy="12" r={step.status === "CURRENT" ? "5" : "7"} fill={step.status === "CURRENT" ? "currentColor" : "none"} />}</svg><div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm"><span className={step.status === "CURRENT" ? "font-medium text-foreground" : "text-muted"}>{title}</span><span className="text-xs text-muted">{labels[step.status]}</span></div></li>; })}</ol></section>;
+    const mode = analysis.steps[0]?.code;
+    return <AnalysisActivity mode={mode === "SCREENSHOT" || mode === "URL" ? mode : "TEXT"} />;
   }
   const failed = analysis.status === "FAILED";
   const unsupportedLanguage = analysis.status === "INSUFFICIENT_DATA" && analysis.reason === "UNSUPPORTED_LANGUAGE";

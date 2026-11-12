@@ -3,6 +3,6 @@
 import { PageRecovery } from "@/shared/ui/PageRecovery";
 import "./globals.css";
 
-export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
-  return <html lang="en"><body><PageRecovery retry={reset} /></body></html>;
+export default function GlobalError({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
+  return <html lang="en"><body><PageRecovery retry={retry} /></body></html>;
 }
