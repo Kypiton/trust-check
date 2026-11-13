@@ -13,11 +13,11 @@ export function HomeContent() {
   const [trustCoreBoosted, setTrustCoreBoosted] = useState(false);
   const inputs = ru ? [
     { title: "Текст", description: "Вставьте подозрительное SMS, письмо или сообщение из чата. Поддерживаются русский и английский.", path: "M5 4h14v12H9l-4 4V4Zm4 4h6m-6 4h4" },
-    { title: "Ссылка", description: "Проверьте структуру ссылки, данные домена, перенаправления и репутацию угроз.", path: "m10 13 4-4m-6 5-2 2a4 4 0 0 1-6-6l4-4m12 4 2-2a4 4 0 0 0-6-6l-4 4" },
+    { title: "Ссылка", description: "Проверьте структуру ссылки, данные домена, перенаправления и репутацию угроз.", path: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" },
     { title: "Скриншот", description: "Загрузите скриншот: TrustCheck распознает русский или английский текст и найденные ссылки.", path: "M4 3h16v18H4V3Zm0 13 5-5 4 4 3-3 4 4M8 7h.01" },
   ] : [
     { title: "Text", description: "Paste a suspicious text, email, or chat message. Text checks support English and Russian.", path: "M5 4h14v12H9l-4 4V4Zm4 4h6m-6 4h4" },
-    { title: "Link", description: "Check a link’s structure, domain information, redirects, and threat reputation.", path: "m10 13 4-4m-6 5-2 2a4 4 0 0 1-6-6l4-4m12 4 2-2a4 4 0 0 0-6-6l-4 4" },
+    { title: "Link", description: "Check a link’s structure, domain information, redirects, and threat reputation.", path: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" },
     { title: "Screenshot", description: "Upload a screenshot to extract readable English or Russian text and links, then check them for warning signs.", path: "M4 3h16v18H4V3Zm0 13 5-5 4 4 3-3 4 4M8 7h.01" },
   ];
   const steps = ru ? [

@@ -58,27 +58,14 @@ function readPalette(): Palette {
 function supportsWebGL() {
   try {
     const canvas = document.createElement("canvas");
-    return Boolean(
-      canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true }) ||
-      canvas.getContext("webgl", { failIfMajorPerformanceCaveat: true }),
-    );
+    const context = canvas.getContext("webgl2") || canvas.getContext("webgl");
+    if (!context) return false;
+
+    context.getExtension("WEBGL_lose_context")?.loseContext();
+    return true;
   } catch {
     return false;
   }
-}
-
-function useMediaQuery(query: string) {
-  const [matches, setMatches] = useState(false);
-
-  useEffect(() => {
-    const media = window.matchMedia(query);
-    const update = () => setMatches(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, [query]);
-
-  return matches;
 }
 
 function useTrustCorePalette() {
@@ -98,7 +85,6 @@ function useTrustCorePalette() {
 export function TrustCoreHero({ boosted = false, ru = false }: TrustCoreHeroProps) {
   const hostRef = useRef<HTMLElement>(null);
   const reducedMotion = useReducedMotion();
-  const mobile = useMediaQuery("(max-width: 639px)");
   const palette = useTrustCorePalette();
   const [nearViewport, setNearViewport] = useState(false);
   const [sceneVisible, setSceneVisible] = useState(true);
@@ -146,7 +132,7 @@ export function TrustCoreHero({ boosted = false, ru = false }: TrustCoreHeroProp
     };
   }, []);
 
-  const useCanvas = shouldRenderTrustCoreCanvas({ nearViewport, browserReady, webgl, mobile, reducedMotion });
+  const useCanvas = shouldRenderTrustCoreCanvas({ nearViewport, browserReady, webgl, reducedMotion });
 
   return (
     <figure

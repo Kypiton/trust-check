@@ -61,8 +61,8 @@ body {
   color: var(--tc-foreground);
 }
 
-/* Lightweight fallback for the Trust Core hero when WebGL is unavailable,
-   motion is reduced, or the viewport is intentionally kept simple. */
+/* Lightweight fallback for the Trust Core hero when WebGL is unavailable
+   or the user explicitly prefers reduced motion. */
 .tc-trust-core-fallback {
   transform: translateZ(0);
   transition: transform 240ms ease, filter 240ms ease;

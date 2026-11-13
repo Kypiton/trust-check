@@ -2,7 +2,6 @@ export type TrustCoreRenderInputs = {
   nearViewport: boolean;
   browserReady: boolean;
   webgl: boolean;
-  mobile: boolean;
   reducedMotion: boolean | null;
 };
 
@@ -11,7 +10,6 @@ export function shouldRenderTrustCoreCanvas(inputs: TrustCoreRenderInputs) {
     inputs.nearViewport &&
     inputs.browserReady &&
     inputs.webgl &&
-    !inputs.mobile &&
     !inputs.reducedMotion,
   );
 }
