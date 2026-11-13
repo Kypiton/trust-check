@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["three"],
   poweredByHeader: false,
   // Development action diagnostics otherwise include submitted argument values.
   logging: { serverFunctions: false },

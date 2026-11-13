@@ -1,0 +1,1 @@
+export { TrustCoreHero } from "./TrustCoreHero";

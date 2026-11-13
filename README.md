@@ -17,6 +17,11 @@ as metadata automatically. Raw messages, original links, images, extracted text,
 and provider responses are excluded from saved History. External security providers
 may receive submitted/detected links during link checks; analysis is not fully local.
 
+### Trust Core 3D hero
+
+The landing page includes a decorative procedural Trust Core scene built with React Three Fiber + Three.js. It is isolated from the analysis pipeline, lazy-loaded near the hero, uses a lightweight mobile/WebGL fallback, and disables continuous motion when `prefers-reduced-motion` is enabled. The scene is explicitly labeled as an illustration and never represents a real assessment.
+
+
 ## Getting Started
 
 ### Local PostgreSQL

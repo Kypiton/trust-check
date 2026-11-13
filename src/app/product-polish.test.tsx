@@ -10,8 +10,8 @@ it("offers public checking and an anchored explanation from the landing page", (
   expect(html).toContain('href="#how-it-works"');
   expect(html).toContain('id="how-it-works"');
   expect(html).toContain("No account needed to check.");
-  expect(html).toContain("Example assessment");
-  expect(html).toContain("Illustration only");
+  expect(html).toContain("Trust Core");
+  expect(html).toContain("Demo visualization — not a real assessment.");
   for (const label of ["Text", "Link", "Screenshot"]) expect(html).toContain(`>${label}</h3>`);
   expect(html).not.toMatch(/coming soon|placeholder/i);
 });

@@ -60,3 +60,47 @@ body {
   background: var(--tc-primary-soft);
   color: var(--tc-foreground);
 }
+
+/* Lightweight fallback for the Trust Core hero when WebGL is unavailable,
+   motion is reduced, or the viewport is intentionally kept simple. */
+.tc-trust-core-fallback {
+  transform: translateZ(0);
+  transition: transform 240ms ease, filter 240ms ease;
+}
+
+.tc-trust-core-fallback--boosted {
+  transform: scale(1.025);
+  filter: saturate(1.08);
+}
+
+.tc-trust-core-orbit {
+  animation: tc-trust-core-orbit 16s linear infinite;
+  box-shadow: 0 0 28px color-mix(in srgb, var(--tc-primary) 12%, transparent);
+}
+
+.tc-trust-core-orbit--reverse {
+  animation-direction: reverse;
+  animation-duration: 21s;
+}
+
+.tc-trust-core-node {
+  animation: tc-trust-core-node 2.8s ease-in-out infinite;
+}
+
+@keyframes tc-trust-core-orbit {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes tc-trust-core-node {
+  0%, 100% { opacity: 0.65; transform: scale(0.88); }
+  50% { opacity: 1; transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-trust-core-fallback,
+  .tc-trust-core-orbit,
+  .tc-trust-core-node {
+    animation: none !important;
+    transition: none !important;
+  }
+}

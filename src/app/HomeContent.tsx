@@ -1,13 +1,16 @@
 "use client";
 
 import { Reveal } from "@/shared/ui/motion/Reveal";
+import { TrustCoreHero } from "@/widgets/trust-core";
 import Link from "next/link";
+import { useState } from "react";
 import { useLocale } from "@/shared/i18n/LocaleProvider";
 
 const focus = "focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary";
 
 export function HomeContent() {
   const ru = useLocale() === "ru";
+  const [trustCoreBoosted, setTrustCoreBoosted] = useState(false);
   const inputs = ru ? [
     { title: "Текст", description: "Вставьте подозрительное SMS, письмо или сообщение из чата. Поддерживаются русский и английский.", path: "M5 4h14v12H9l-4 4V4Zm4 4h6m-6 4h4" },
     { title: "Ссылка", description: "Проверьте структуру ссылки, данные домена, перенаправления и репутацию угроз.", path: "m10 13 4-4m-6 5-2 2a4 4 0 0 1-6-6l4-4m12 4 2-2a4 4 0 0 0-6-6l-4 4" },
@@ -17,7 +20,6 @@ export function HomeContent() {
     { title: "Link", description: "Check a link’s structure, domain information, redirects, and threat reputation.", path: "m10 13 4-4m-6 5-2 2a4 4 0 0 1-6-6l4-4m12 4 2-2a4 4 0 0 0-6-6l-4 4" },
     { title: "Screenshot", description: "Upload a screenshot to extract readable English or Russian text and links, then check them for warning signs.", path: "M4 3h16v18H4V3Zm0 13 5-5 4 4 3-3 4 4M8 7h.01" },
   ];
-  const exampleSignals = ru ? ["Давление и срочность", "Запрос кода подтверждения", "Подозрительная ссылка"] : ["Pressure to act urgently", "A request for a verification code", "A suspicious link"];
   const steps = ru ? [
     ["Добавьте", "Вставьте подозрительное сообщение, ссылку или загрузите скриншот."],
     ["Проверьте", "TrustCheck ищет несколько независимых признаков риска."],
@@ -31,24 +33,27 @@ export function HomeContent() {
   return (
     <main className="w-full flex-1 bg-background text-foreground">
       <div className="mx-auto max-w-[var(--tc-content-max)] px-4 md:px-6 xl:px-8">
-        <Reveal><section aria-labelledby="hero-title" className="grid items-center gap-10 py-12 md:grid-cols-2 md:gap-8 md:py-20">
-          <div>
+        <Reveal><section aria-labelledby="hero-title" className="grid items-center gap-10 py-10 md:grid-cols-2 md:gap-8 md:py-16 lg:grid-cols-[0.88fr_1.12fr] lg:gap-12 lg:py-20">
+          <div className="relative z-10">
             <p className="text-sm font-semibold text-primary">{ru ? "Безопасность в интернете — проще" : "Online safety, simplified"}</p>
             <h1 id="hero-title" className="mt-4 max-w-lg text-4xl font-bold leading-tight tracking-tight">{ru ? "Не уверены, что это настоящее?" : "Not sure if it’s real?"}</h1>
             <p className="mt-5 max-w-lg text-base leading-7 text-muted">{ru ? "Проверьте подозрительное сообщение, ссылку или скриншот на признаки мошенничества и фишинга." : "Check suspicious messages, links, and screenshots for signs commonly associated with scams and phishing."}</p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link href="/check" className={`inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary-hover ${focus}`}>{ru ? "Проверить" : "Check something"}<span aria-hidden="true" className="ml-3">→</span></Link>
+              <Link
+                href="/check"
+                onPointerEnter={() => setTrustCoreBoosted(true)}
+                onPointerLeave={() => setTrustCoreBoosted(false)}
+                onFocus={() => setTrustCoreBoosted(true)}
+                onBlur={() => setTrustCoreBoosted(false)}
+                className={`inline-flex min-h-11 items-center justify-center rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary-hover ${focus}`}
+              >
+                {ru ? "Проверить" : "Check something"}<span aria-hidden="true" className="ml-3">→</span>
+              </Link>
               <a href="#how-it-works" className={`inline-flex min-h-11 items-center justify-center rounded-md border border-border bg-surface px-5 py-3 text-sm font-medium hover:bg-surface-secondary ${focus}`}>{ru ? "Как это работает" : "How it works"}</a>
             </div>
             <p className="mt-4 text-sm text-muted">{ru ? "Для проверки аккаунт не нужен." : "No account needed to check."}</p>
           </div>
-          <figure className="w-full max-w-md justify-self-center rounded-xl border border-border bg-surface p-5 md:p-6">
-            <figcaption className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-4 text-sm text-muted"><span>{ru ? "Пример результата" : "Example assessment"}</span><span className="rounded-md bg-surface-secondary px-2 py-1 text-xs">{ru ? "Только иллюстрация" : "Illustration only"}</span></figcaption>
-            <div className="mt-5 flex items-center gap-3"><svg aria-hidden="true" className="size-6 text-danger" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3 10 18H2L12 3Zm0 6v5m0 3h.01" /></svg><div><p className="text-xs text-muted">{ru ? "Оценка риска" : "Risk assessment"}</p><p className="mt-1 text-2xl font-semibold text-danger">{ru ? "Высокий риск" : "High Risk"}</p></div></div>
-            <p className="mt-5 text-sm font-medium">{ru ? "На что обратить внимание" : "Warning signs to look for"}</p>
-            <ul className="mt-3 divide-y divide-border">{exampleSignals.map(signal => <li key={signal} className="flex items-center gap-3 py-3 text-sm"><span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-danger" />{signal}</li>)}</ul>
-            <p className="mt-4 rounded-lg bg-surface-secondary p-3 text-sm leading-6 text-muted">{ru ? "Не спешите: проверьте информацию через официальный канал перед любыми действиями." : "Pause and verify through an official channel before taking action."}</p>
-          </figure>
+          <TrustCoreHero boosted={trustCoreBoosted} ru={ru} />
         </section></Reveal>
 
         <Reveal><section aria-labelledby="inputs-title" className="border-t border-border py-10 md:py-12"><h2 id="inputs-title" className="text-2xl font-semibold tracking-tight">{ru ? "Три способа проверки" : "Three ways to check"}</h2><div className="mt-6 grid gap-4 md:grid-cols-3">{inputs.map(input => <article key={input.title} className="rounded-xl border border-border bg-surface p-5"><svg aria-hidden="true" className="size-6 text-primary" viewBox="-2 -2 28 28" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d={input.path} /></svg><h3 className="mt-4 font-semibold">{input.title}</h3><p className="mt-2 text-sm leading-6 text-muted">{input.description}</p></article>)}</div></section></Reveal>
