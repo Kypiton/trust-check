@@ -25,7 +25,27 @@ export function parseAppOrigin(value: string, production: boolean, name = "APP_U
 
 export function getAppUrl(env: Environment = process.env): URL {
   const value = env.APP_URL?.trim();
-  if (value) return parseAppOrigin(value, env.NODE_ENV === "production");
-  if (env.NODE_ENV === "development" || env.NODE_ENV === "test") return new URL("http://localhost:3000");
-  throw new Error("APP_URL is required in production.");
+
+  if (value) {
+    return parseAppOrigin(value, env.NODE_ENV === "production");
+  }
+
+  const vercelProductionUrl =
+    env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+
+  if (vercelProductionUrl) {
+    return parseAppOrigin(
+      `https://${vercelProductionUrl}`,
+      true,
+      "VERCEL_PROJECT_PRODUCTION_URL",
+    );
+  }
+
+  if (env.NODE_ENV === "development" || env.NODE_ENV === "test") {
+    return new URL("http://localhost:3000");
+  }
+
+  throw new Error(
+    "APP_URL or VERCEL_PROJECT_PRODUCTION_URL is required in production.",
+  );
 }

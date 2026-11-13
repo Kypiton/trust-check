@@ -8,9 +8,15 @@ type Environment = Record<string, string | undefined>;
 export function validateProductionEnv(env: Environment = process.env): void {
   if (env.NODE_ENV !== "production") return;
   const origin = getAppUrl(env);
-  if (!env.BETTER_AUTH_URL?.trim()) throw new Error("BETTER_AUTH_URL is required in production.");
-  if (parseAppOrigin(env.BETTER_AUTH_URL, true, "BETTER_AUTH_URL").origin !== origin.origin) {
-    throw new Error("BETTER_AUTH_URL must match APP_URL.");
+  const authUrl =
+    env.BETTER_AUTH_URL?.trim() ||
+    origin.origin;
+
+  if (
+    parseAppOrigin(authUrl, true, "BETTER_AUTH_URL").origin !==
+    origin.origin
+  ) {
+    throw new Error("BETTER_AUTH_URL must match the application origin.");
   }
   for (const name of ["BETTER_AUTH_SECRET", "RATE_LIMIT_SECRET"] as const) {
     const secret = env[name]?.trim() ?? "";

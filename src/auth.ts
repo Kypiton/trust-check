@@ -1,6 +1,7 @@
 import "server-only";
 
 import { betterAuth } from "better-auth";
+import { getAppUrl } from "./shared/config/app-url";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { getAuthPrismaClient } from "./shared/server/rate-limit/auth-prisma";
 import { trustedClientIpHeader } from "./shared/server/rate-limit/client-ip";
@@ -19,7 +20,9 @@ export const auth = betterAuth({
       else if (level === "warn") console.warn("[TrustCheck] AUTH_WARNING");
     },
   },
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL:
+    process.env.BETTER_AUTH_URL?.trim() ||
+    getAppUrl().origin,
   secret: process.env.BETTER_AUTH_SECRET,
   database: prismaAdapter(getAuthPrismaClient(), { provider: "postgresql" }),
   advanced: { ipAddress: { ipAddressHeaders: trustedHeader ? [trustedHeader] : [] } },

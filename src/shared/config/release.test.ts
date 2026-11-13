@@ -32,8 +32,25 @@ describe("canonical origin", () => {
 describe("production environment", () => {
   it("allows an absent optional provider", () => expect(() => validateProductionEnv(production)).not.toThrow());
   it("does not require production settings in development", () => expect(() => validateProductionEnv({ NODE_ENV: "development" })).not.toThrow());
-  it.each(["APP_URL", "BETTER_AUTH_URL", "BETTER_AUTH_SECRET", "RATE_LIMIT_SECRET", "DATABASE_URL", "TRUST_PROXY_IP_HEADERS", "TRUSTED_CLIENT_IP_HEADER"])("fails explicitly when %s is missing", key => {
-    expect(() => validateProductionEnv({ ...production, [key]: "" })).toThrow(new RegExp(key));
+  it.each([
+    "APP_URL",
+    "BETTER_AUTH_SECRET",
+    "RATE_LIMIT_SECRET",
+    "DATABASE_URL",
+    "TRUST_PROXY_IP_HEADERS",
+    "TRUSTED_CLIENT_IP_HEADER",
+  ])("fails explicitly when %s is missing", key => {
+    expect(() =>
+      validateProductionEnv({ ...production, [key]: "" }),
+    ).toThrow(new RegExp(key));
+  });
+  it("allows BETTER_AUTH_URL to fall back to the application origin", () => {
+    expect(() =>
+      validateProductionEnv({
+        ...production,
+        BETTER_AUTH_URL: "",
+      }),
+    ).not.toThrow();
   });
   it.each([
     { BETTER_AUTH_URL: "https://other.example" }, { BETTER_AUTH_SECRET: "short" }, { BETTER_AUTH_SECRET: "replace-with-random-secret-at-least-32-bytes" }, { RATE_LIMIT_SECRET: "short" }, { RATE_LIMIT_SECRET: "CHANGE_ME_TO_A_LONG_RANDOM_SECRET_123456" },
