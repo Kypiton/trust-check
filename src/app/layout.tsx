@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { rootMetadata } from "@/shared/config/metadata";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Header } from "@/widgets/header";
 import { LocaleProvider } from "@/shared/i18n/LocaleProvider";
@@ -8,16 +8,7 @@ import "./globals.css";
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: { default: "TrustCheck — Understand the risk", template: "%s | TrustCheck" },
-  description: "Check suspicious messages, links, and screenshots for scam and phishing warning signs. Get a risk assessment and practical next steps, without needing an account.",
-  openGraph: {
-    title: "TrustCheck — Understand the risk",
-    description: "Check suspicious messages, links, and screenshots. Understand warning signs and decide what to do next. A risk assessment, not a safety guarantee.",
-    siteName: "TrustCheck",
-    type: "website",
-  },
-};
+export const generateMetadata = rootMetadata;
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getRequestLocale();

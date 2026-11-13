@@ -10,6 +10,15 @@ const development = process.env.NODE_ENV === "development";
 
 export const auth = betterAuth({
   appName: "TrustCheck",
+  // Better Auth may pass raw adapter errors/session data to its logger.
+  // Keep operational visibility without serializing messages or extra arguments.
+  logger: {
+    level: "warn",
+    log(level) {
+      if (level === "error") console.error("[TrustCheck] AUTH_ERROR");
+      else if (level === "warn") console.warn("[TrustCheck] AUTH_WARNING");
+    },
+  },
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
   database: prismaAdapter(getAuthPrismaClient(), { provider: "postgresql" }),

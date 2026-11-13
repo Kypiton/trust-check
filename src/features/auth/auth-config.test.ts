@@ -27,3 +27,16 @@ it("has the official database rate-limit model with a unique key and bigint time
   const model = schema.match(/model RateLimit \{([^}]+)\}/)?.[1];
   expect(model).toContain("@@unique([key])"); expect(model).toMatch(/lastRequest\s+BigInt/); expect(model).toMatch(/count\s+Int/);
 });
+
+
+it("never serializes Better Auth error messages or additional private arguments", () => {
+  const error = vi.spyOn(console, "error").mockImplementation(() => {});
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    const logger = mocks.betterAuth.mock.calls[0][0].logger;
+    logger.log("error", "PRIVATE_MESSAGE", { token: "private-token", url: "private-url" });
+    logger.log("warn", "PRIVATE_MESSAGE", new Error("private-db-url"));
+    expect(error).toHaveBeenCalledExactlyOnceWith("[TrustCheck] AUTH_ERROR");
+    expect(warn).toHaveBeenCalledExactlyOnceWith("[TrustCheck] AUTH_WARNING");
+  } finally { error.mockRestore(); warn.mockRestore(); }
+});

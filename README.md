@@ -143,6 +143,7 @@ migrations as above. Run `npm run dev` and open http://localhost:3000.
 | Environment variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | Server-only PostgreSQL connection (local URL above). |
+| `APP_URL` | Canonical application origin. Local fallback is `http://localhost:3000`; production requires the real public HTTPS origin. |
 | `BETTER_AUTH_URL` | Application origin, locally `http://localhost:3000`. |
 | `BETTER_AUTH_SECRET` | Strong, stable authentication secret. |
 | `RATE_LIMIT_SECRET` | Strong, stable rate-limit key secret. |
@@ -174,3 +175,84 @@ movement. Waiting screens describe possible checks, never fabricated progress.
 
 Tailwind runs through its official PostCSS plugin for both webpack and Turbopack.
 This is required for `npm run build -- --webpack` to include utility styles.
+
+## Production deployment
+
+Use a Node.js host (Node 22.22.2+ or another supported release satisfying the installed package engines), PostgreSQL, HTTPS, and a
+trusted reverse proxy. This app needs Node workers/native dependencies for Sharp
+and Tesseract; an edge-only/static deployment is unsuitable. Install with `npm ci`;
+keep the traced OCR worker, English/Russian language data, and native dependencies
+in the deployment artifact. Do not deploy the local Docker Compose credentials.
+
+Configure the variables documented in `.env.example` in the hosting secret store:
+`DATABASE_URL`, `APP_URL`, `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET`,
+`RATE_LIMIT_SECRET`, `TRUST_PROXY_IP_HEADERS`, and `TRUSTED_CLIENT_IP_HEADER`.
+`APP_URL` is the canonical public HTTPS origin, without a path/query/fragment. Reserved documentation/test domains are rejected so a placeholder cannot become the production canonical;
+`BETTER_AUTH_URL` must match it. Set these **before building and at runtime**;
+rebuild when the canonical origin changes. No production localhost fallback exists.
+Startup rejects missing/malformed critical settings with value-free error messages.
+`GOOGLE_WEB_RISK_API_KEY` remains optional; missing credentials skip that provider.
+Generate the two secrets independently using a cryptographic random generator
+and keep them stable across replicas/restarts. Never use example values in production.
+
+The proxy must overwrite the selected header with one verified client IP, strip
+client-supplied copies, and prevent direct access to the app origin. Merely setting
+the two trust variables does not establish trust. Confirm this with the chosen
+host before public launch. See the rate-limit section for quotas and cleanup.
+
+Deployment order:
+
+1. Provision PostgreSQL; configure access, TLS as required by the database host,
+   and a tested backup/restore process.
+2. Configure production environment and the trusted HTTPS proxy.
+3. Gate the release with the checks below; run `npx prisma migrate deploy` once
+   against the intended database, then `npx prisma migrate status`. Do not use
+   `migrate dev` or `db push` in production. Coordinate migrations/rollback before
+   switching traffic; this release introduces no schema migration.
+4. Deploy the generated client and production build, then `npm run start` (or the
+   host's equivalent). Do not use `next dev` publicly.
+5. Complete [the release checklist](docs/release-checklist.md) on the real origin:
+   auth, EN/RU Text/OCR, Link, History/delete, rate limiting, and public metadata.
+
+```bash
+npm test
+npm run lint -- --max-warnings 0
+npx prisma validate
+npx prisma generate
+npm run build -- --webpack
+npx tsc --noEmit
+```
+
+Run standalone TypeScript checks after the build, not concurrently with it:
+Next regenerates `.next/types` during builds. Build/generate/validate do not apply
+migrations. The installed Next version supports webpack as the production path.
+
+### Indexing, headers and operational privacy
+
+Only `/` and `/check` have canonical URLs and appear in the sitemap. History,
+login/register, saved results, account/privacy and APIs are noindex. The privacy
+page contains personal deletion controls and remains authenticated. Robots disallows
+private paths; authorization still enforces ownership. Development robots disallows
+all crawling and its sitemap is empty. Preview IDs render fixtures only in development.
+Use host-level access protection for staging; robots is not access control.
+
+`/opengraph-image` generates a static 1200×630 branded social preview using Next's
+ImageResponse. Icons use the same shield mark; rebuild the raster versions with
+`node scripts/generate-icons.mjs` after changing `src/app/icon.svg`.
+
+Responses disable MIME sniffing, referrers and framing, and restrict camera,
+microphone, geolocation and browser Topics access. Clipboard access remains available. Private routes/API
+responses receive noindex and private/no-store headers. Do not configure a CDN to
+cache session-dependent HTML or RSC responses; the shared header also reads the
+session on public pages. The existing request-scoped React cache is not a shared
+user-data cache.
+
+CSP currently restricts framing only. A full script/style nonce policy is deferred
+until it can be tested with the selected host, Next hydration and Motion. Configure
+HSTS at the HTTPS edge after confirming certificates, redirects and subdomain policy;
+no HSTS/preload directive is emitted for local development.
+
+Application analysis/auth logs use generic event codes; OCR worker stdout/stderr are
+discarded and raw exceptions are not returned to users. Configure hosting, proxy,
+database and error-reporting logs to avoid request bodies, query strings, cookies,
+authorization headers and provider payloads. Next development action argument logging is disabled; still use dummy content locally. No tracking SDK is included.

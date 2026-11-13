@@ -4,6 +4,8 @@ import { getRequestLocale } from "@/shared/i18n/server";
 
 export const metadata: Metadata = {
   title: "Check something suspicious",
+  alternates: { canonical: "/check" },
+  robots: { index: true, follow: true },
   description: "Check suspicious text, links, or screenshots for scam and phishing warning signs.",
 };
 
